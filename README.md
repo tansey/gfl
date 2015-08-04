@@ -1,6 +1,10 @@
 A Fast, Flexible Algorithm for the Graph-Fused Lasso
 ----------------------------------------------------
 
+<p align="center">
+  <img src="https://github.com/tansey/gfl/blob/master/img/example1.png?raw=true" alt="Example GFL Solution"/>
+</p>
+
 The goal in the graph-fused lasso (GFL) is to find a solution to the following convex optimization problem:
 
 <p align="center">
@@ -10,18 +14,6 @@ The goal in the graph-fused lasso (GFL) is to find a solution to the following c
 where __l__ is a smooth, convex loss function. The problem assumes you are given a graph structure of edges and nodes, where each node corresponds to a variable and edges between nodes correspond to constraints on the first differences between the variables. The objective function then seeks to find a solution to the above problem that minimizes the loss function over the vertices plus the sum of the first differences defined by the set of edges __E__.
 
 The solution implemented here is based on the graph-theoretic trail decomposition and ADMM algorithm implemented in [1]. The code relies on a slightly modified version of a linear-time dynamic programming solution to the 1-d (i.e. chain) GFL [2].
-
-Compiling the C solver lib
-==========================
-To compile the C solver library, you just need to run the make file from the `cpp` directory:
-
-`make all`
-
-Then you will need to make sure that you have the `cpp/lib` directory in your `LD_LIBRARY_PATH`:
-
-`export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/my/path/to/gfl/cpp/lib/`
-
-Note the above instructions are for *nix users.
 
 Python requirements
 ===================
@@ -75,11 +67,20 @@ Given a set of trails in `example/trails.csv` and a vector of observations in `e
 graphfl example/data.csv example/edges.csv --trails example/trails.csv --o example/smoothed.csv
 ```
 
-This will run a solution path to auto-tune the value of the penalty parameter (the λ in equation 1). The results will be saved in `example/smoothed.csv`. The results should look something like the image below.
+This will run a solution path to auto-tune the value of the penalty parameter (the λ in equation 1). The results will be saved in `example/smoothed.csv`. The results should look something like the image at the top of the readme.
 
-<p align="center">
-  <img src="https://github.com/tansey/gfl/blob/master/img/example1.png?raw=true" alt="Example GFL Solution"/>
-</p>
+
+Compiling the C solver lib separately
+=====================================
+To compile the C solver as a standalone library, you just need to run the make file from the `cpp` directory:
+
+`make all`
+
+Then you will need to make sure that you have the `cpp/lib` directory in your `LD_LIBRARY_PATH`:
+
+`export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/my/path/to/gfl/cpp/lib/`
+
+Note the above instructions are for *nix users.
 
 Licensing
 =========
