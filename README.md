@@ -3,7 +3,9 @@ A Fast, Flexible Algorithm for the Graph-Fused Lasso
 
 The goal in the graph-fused lasso (GFL) is to find a solution to the following convex optimization problem:
 
-![GFL Convex Optimization Problem](https://raw.githubusercontent.com/tansey/gfl/master/img/eq1.png)
+<p align="center">
+  <img src="https://github.com/tansey/gfl/master/img/eq1.png?raw=true" alt="GFL Convex Optimization Problem"/>
+</p>
 
 where __l__ is a smooth, convex loss function. The problem assumes you are given a graph structure of edges and nodes, where each node corresponds to a variable and edges between nodes correspond to constraints on the first differences between the variables. The objective function then seeks to find a solution to the above problem that minimizes the loss function over the vertices plus the sum of the first differences defined by the set of edges __E__.
 
@@ -70,12 +72,14 @@ This will create a file in `example/trails.csv` containing a set of distinct, no
 Given a set of trails in `example/trails.csv` and a vector of observations in `example/data.csv`, you can run the `graphfl` script to execute the GFL solver:
 
 ```
-graphfl example/data.csv example/trails.csv --o example/smoothed.csv
+graphfl example/data.csv example/edges.csv --trails example/trails.csv --o example/smoothed.csv
 ```
 
 This will run a solution path to auto-tune the value of the penalty parameter (the λ in equation 1). The results will be saved in `example/smoothed.csv`. The results should look something like the image below.
 
-![Example GFL Solution](https://raw.githubusercontent.com/tansey/gfl/master/img/example1.png)
+<p align="center">
+  <img src="https://github.com/tansey/gfl/master/img/example1.png?raw=true" alt="Example GFL Solution"/>
+</p>
 
 Licensing
 =========
