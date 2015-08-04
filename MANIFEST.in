@@ -1,0 +1,5 @@
+include README.md
+include COPYING
+include COPYING.LESSER
+include example/data.csv
+include example/edges.csv
