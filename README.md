@@ -55,7 +55,7 @@ Suppose you have a graph file like the one in `example/edges.csv`, where each ed
 You can then decompose this graph by running the command line `maketrails` script:
 
 ```
-maketrails file --infile example/edges.csv --savet example/trails.csv
+trails file --infile example/edges.csv --savet example/trails.csv
 ```
 
 This will create a file in `example/trails.csv` containing a set of distinct, non-overlapping trails which minimally decomposes the original graph. Next you need to run the solver.

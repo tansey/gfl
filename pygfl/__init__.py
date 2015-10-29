@@ -20,6 +20,7 @@ import time
 import sys
 import argparse
 import csv
+from trails import load_graph, decompose_graph, save_chains
 from solver import TrailSolver
 from utils import *
 
@@ -54,18 +55,21 @@ def main():
         print 'Loading data'
     
     y = np.loadtxt(args.data, delimiter=',')
-    edges = load_edges(args.edges)
 
     ########### Load trails from file if available, otherwise generate them automatically via the Eulerian pseudo-tour
-    if args.trails:
+    trails_filename = args.trails
+    if not trails_filename:
+        trails_filename = args.edges + '_trails.csv'
         if args.verbose:
-            print 'Loading trails from {0}'.format(args.trails)
-        ntrails, trails, breakpoints, edges = load_trails(args.trails)
-    else:
-        if args.verbose:
-            print 'Decomposing graph into trails'
-        raise Exception('Not implemented yet.')
+            print 'Decomposing graph into trails and saving to {0}'.format(trails_filename)
+        g = load_graph(args.edges)
+        chains = decompose_graph(g, heuristic=args.heuristic, max_odds=args.max_odds, verbose=args.verbose)
+        save_chains(chains, trails_filename)
 
+    if args.verbose:
+        print 'Loading trails from {0}'.format(trails_filename)
+    ntrails, trails, breakpoints, edges = load_trails(trails_filename)
+    
     if args.verbose:
         print 'Solving the GFL for {0} variables with {1} edges'.format(len(y), num_edges(edges))
     

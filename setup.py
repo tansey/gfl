@@ -47,7 +47,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'maketrails=pygfl.trail_decomposition:main',
+            'trails=pygfl.trails:main',
             'graphfl=pygfl:main'
         ],
     },

@@ -29,6 +29,13 @@ graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'),
                     c_double, c_double, c_double, c_int, c_double,
                     ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
+weighted_graphfl = graphfl_lib.graph_fused_lasso_weight_warm
+weighted_graphfl.restype = c_int
+weighted_graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                    c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                    c_double, c_double, c_double, c_int, c_double,
+                    ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
 class TrailSolver:
     def __init__(self, alpha=2., inflate=2., maxsteps=1000000, converge=1e-6):
         self.alpha = alpha
@@ -36,13 +43,14 @@ class TrailSolver:
         self.maxsteps = maxsteps
         self.converge = converge
 
-    def set_data(self, y, edges, ntrails, trails, breakpoints):
+    def set_data(self, y, edges, ntrails, trails, breakpoints, weights=None):
         self.y = y
         self.edges = edges
         self.nnodes = len(y)
         self.ntrails = ntrails
         self.trails = trails
         self.breakpoints = breakpoints
+        self.weights = weights
         self.beta = np.zeros(self.nnodes, dtype='double')
         self.z = np.zeros(self.breakpoints[-1], dtype='double')
         self.u = np.zeros(self.breakpoints[-1], dtype='double')
@@ -50,11 +58,18 @@ class TrailSolver:
 
     def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''
-        s = graphfl(self.nnodes, self.y,
-                        self.ntrails, self.trails, self.breakpoints,
-                        lam,
-                        self.alpha, self.inflate, self.maxsteps, self.converge,
-                        self.beta, self.z, self.u)
+        if self.weights is None:
+            s = graphfl(self.nnodes, self.y,
+                            self.ntrails, self.trails, self.breakpoints,
+                            lam,
+                            self.alpha, self.inflate, self.maxsteps, self.converge,
+                            self.beta, self.z, self.u)
+        else:
+            s = weighted_graphfl(self.nnodes, self.y, self.weights,
+                            self.ntrails, self.trails, self.breakpoints,
+                            lam,
+                            self.alpha, self.inflate, self.maxsteps, self.converge,
+                            self.beta, self.z, self.u)
         self.steps.append(s)
         return self.beta
 
