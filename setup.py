@@ -20,11 +20,11 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # C library for the GFL solver
 module1 = Extension('libgraphfl',
                     include_dirs = ['cpp/include/'],
-                    sources = ['cpp/src/graph_fl.c'])
+                    sources = ['cpp/src/graph_fl.c', 'cpp/src/tf_dp.c'])
 
 setup(
     name='pygfl',
-    version='1.0.0',
+    version='1.0.1',
     description='A Fast and Flexible Graph-Fused Lasso Solver',
     long_description=long_description,
     url='https://github.com/tansey/gfl',
