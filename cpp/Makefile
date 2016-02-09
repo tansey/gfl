@@ -8,7 +8,7 @@ all:
 	mkdir -p lib
 	mkdir -p obj
 	cd obj; ${CC} ${CFLAGS}  -c -fPIC ../src/*.c -I${IDIR}
-	${CC} -shared -o lib/libgraphfl.so ${OBJ}
+	${CC} -shared -o lib/libgraphfl.so ${OBJ} -lgsl
 	
 docs:
 	doxygen Doxyfile

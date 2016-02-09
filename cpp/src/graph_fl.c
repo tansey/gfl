@@ -154,6 +154,10 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
             update_beta_weight(n, y, w, z, u, nzmap, zmap, alpha, beta);
         else
             update_beta(n, y, z, u, nzmap, zmap, alpha, beta);
+
+        printf("step %d\n", step);
+        print_vector(n, beta);
+        printf("\n");
         
         /* swap the z buffers */
         ztemp = z;

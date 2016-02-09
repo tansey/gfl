@@ -53,6 +53,10 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
+#ifndef M_LN_SQRT_2PI
+#define M_LN_SQRT_2PI   0.918938533204672741780329736406    /* log(sqrt(2*pi)) */
+#endif
+
 /* Custom structures */
 
 typedef struct gcs_qr /* holds numeric and symbolic qr together */

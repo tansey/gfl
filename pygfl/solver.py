@@ -20,7 +20,7 @@ from numpy.ctypeslib import ndpointer
 from ctypes import *
 from utils import *
 
-''' Load the graph fused lasso library '''
+'''Load the graph fused lasso library'''
 graphfl_lib = cdll.LoadLibrary('libgraphfl.so')
 graphfl = graphfl_lib.graph_fused_lasso_warm
 graphfl.restype = c_int

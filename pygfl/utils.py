@@ -21,27 +21,29 @@ import argparse
 import csv
 import datetime
 from collections import defaultdict, deque
-from scipy.sparse import issparse, isspmatrix_coo
+from scipy.sparse import issparse, isspmatrix_coo, coo_matrix
 
-def create_plateaus(data, edges, plateau_size, plateau_vals):
+def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
     nodes = set(edges.keys())
-    plateaus = []
-    for i in xrange(len(plateau_vals)):
-        if len(nodes) == 0:
-            break
-        node = np.random.choice(list(nodes))
-        nodes.remove(node)
-        plateau = [node]
-        available = set(edges[node]) & nodes
-        while len(nodes) > 0 and len(available) > 0 and len(plateau) < plateau_size:
-            node = np.random.choice(list(available))
-            plateau.append(node)
-            available |= nodes & set(edges[node])
-            available.remove(node)
-        nodes -= set(plateau)
-        plateaus.append(plateau)
+    if plateaus is None:
+        plateaus = []
+        for i in xrange(len(plateau_vals)):
+            if len(nodes) == 0:
+                break
+            node = np.random.choice(list(nodes))
+            nodes.remove(node)
+            plateau = [node]
+            available = set(edges[node]) & nodes
+            while len(nodes) > 0 and len(available) > 0 and len(plateau) < plateau_size:
+                node = np.random.choice(list(available))
+                plateau.append(node)
+                available |= nodes & set(edges[node])
+                available.remove(node)
+            nodes -= set(plateau)
+            plateaus.append(set(plateau))
     for p,v in zip(plateaus, plateau_vals):
         data[p] = v
+    return plateaus
 
 def load_trails(filename):
     with open(filename, 'rb') as f:
@@ -229,8 +231,32 @@ def row_col_trails(rows, cols):
     breakpoints[rows:] = nnodes + np.arange(1, cols+1) * rows
     return ntrails, trails, breakpoints, grid_graph_edges(rows, cols)
 
+def get_1d_penalty_matrix(length):
+    D = np.eye(length, dtype=float)[0:-1] * -1
+    for i in xrange(len(D)):
+        D[i,i+1] = 1
+    return D
 
+def get_delta(D, k):
+    '''Calculate the k-th order trend filtering matrix given the oriented edge
+    incidence matrix and the value of k.'''
+    if k < 0:
+        raise Exception('k must be at least 0th order.')
+    result = D
+    for i in xrange(k):
+        result = D.T.dot(result) if i % 2 == 0 else D.dot(result)
+    return result
 
+def decompose_delta(deltak):
+    '''Decomposes the k-th order trend filtering matrix into a c-compatible set
+    of arrays.'''
+    if not isspmatrix_coo(deltak):
+        deltak = coo_matrix(deltak)
+    dk_rows = deltak.shape[0]
+    dk_rowbreaks = np.cumsum(deltak.getnnz(1), dtype="int32")
+    dk_cols = deltak.col
+    dk_vals = deltak.data
+    return dk_rows, dk_rowbreaks, dk_cols, dk_vals
 
 
 
