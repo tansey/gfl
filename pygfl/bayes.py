@@ -31,10 +31,43 @@ gflbayes_gaussian_laplace.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIG
                 c_int, c_int, c_int,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
-gflbayes_lib = cdll.LoadLibrary('libgraphfl.so')
 gflbayes_gaussian_doublepareto = gflbayes_lib.bayes_gfl_gaussian_doublepareto
 gflbayes_gaussian_doublepareto.restype = None
 gflbayes_gaussian_doublepareto.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double,
+                c_double, c_double, c_double,
+                c_int, c_int, c_int,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+gflbayes_binomial_laplace = gflbayes_lib.bayes_gfl_binomial_laplace
+gflbayes_binomial_laplace.restype = None
+gflbayes_binomial_laplace.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double,
+                c_int, c_int, c_int,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+gflbayes_binomial_doublepareto = gflbayes_lib.bayes_gfl_binomial_doublepareto
+gflbayes_binomial_doublepareto.restype = None
+gflbayes_binomial_doublepareto.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double,
+                c_double, c_double, c_double,
+                c_int, c_int, c_int,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+gflbayes_poisson_laplace = gflbayes_lib.bayes_gfl_poisson_laplace
+gflbayes_poisson_laplace.restype = None
+gflbayes_poisson_laplace.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double,
+                c_int, c_int, c_int,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+gflbayes_poisson_doublepareto = gflbayes_lib.bayes_gfl_poisson_doublepareto
+gflbayes_poisson_doublepareto.restype = None
+gflbayes_poisson_doublepareto.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'),
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
                 c_double, c_double, c_double,
@@ -96,17 +129,121 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
                                       iterations, burn, thin,
                                       double_matrix_to_c_pointer(beta_samples), lam_samples)
     elif likelihood == 'binomial':
-        pass
+        if prior == 'laplace':
+            gflbayes_binomial_laplace(len(trials), trials, successes,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
+        elif prior == 'doublepareto':
+            gflbayes_binomial_doublepareto(len(trials), trials, successes,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      lam_walk_stdev, lam0, dp_hyperparameter,
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
     elif likelihood == 'poisson':
-        pass
+        if prior == 'laplace':
+            gflbayes_poisson_laplace(len(obs), obs,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
+        elif prior == 'doublepareto':
+            gflbayes_poisson_doublepareto(len(obs), obs,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      lam_walk_stdev, lam0, dp_hyperparameter,
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
     else:
         raise Exception('Unknown likelihood type: {0}'.format(likelihood))
 
-    print 'Sample size: {0}'.format(sample_size)
-
     return (beta_samples,lam_samples)
 
-if __name__ == '__main__':
+def test_sample_gtf_poisson():
+    probs = np.zeros(100)
+    probs[:25] = 5.
+    probs[25:50] = 9.
+    probs[50:75] = 3.
+    probs[75:] = 6.
+    obs = np.array([np.random.poisson(p) for p in probs]).astype('int32')
+    D = get_1d_penalty_matrix(len(obs))
+    k = 0
+
+    z_samples, lam_samples = sample_gtf(obs, D, k, likelihood='poisson', prior='doublepareto', verbose=True, iterations=15000, burn=2000, thin=10)
+    z = z_samples.mean(axis=0)
+    z_stdev = z_samples.std(axis=0)
+    z_lower = z - z_stdev*2
+    z_upper = z + z_stdev*2
+
+    fig, ax = plt.subplots(4)
+    x = np.linspace(0,1,len(obs))
+    ax[0].bar(x, obs, width=1./len(x), color='darkblue', alpha=0.3)
+    ax[0].set_xlim([0,1])
+    ax[0].set_ylabel('Observations')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,12]) / (np.arange(z_samples.shape[0])+1.), color='orange')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,37]) / (np.arange(z_samples.shape[0])+1.), color='skyblue')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,63]) / (np.arange(z_samples.shape[0])+1.), color='black')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,87]) / (np.arange(z_samples.shape[0])+1.), color='#009E73')
+    ax[1].set_xlim([1,z_samples.shape[0]])
+    ax[1].set_ylabel('Mean values')
+    ax[2].hist(lam_samples, 50)
+    ax[2].set_xlabel('Lambda values')
+    ax[2].set_ylabel('Samples')
+    ax[3].scatter(x, probs, alpha=0.5)
+    ax[3].plot(x, z, lw=2, color='orange')
+    ax[3].fill_between(x, z_lower, z_upper, alpha=0.3, color='orange')
+    ax[3].set_xlim([0,1])
+    ax[3].set_ylabel('Probability of success')
+    plt.show()
+    plt.clf()
+
+def test_sample_gtf_binomial():
+    trials = np.random.randint(5, 30, size=100).astype('int32')
+    probs = np.zeros(100)
+    probs[:25] = 0.25
+    probs[25:50] = 0.75
+    probs[50:75] = 0.5
+    probs[75:] = 0.1
+    successes = np.array([np.random.binomial(t, p) for t,p in zip(trials, probs)], dtype='int32')
+    
+    D = get_1d_penalty_matrix(len(successes))
+    k = 0
+
+    z_samples, lam_samples = sample_gtf((trials, successes), D, k, likelihood='binomial', prior='doublepareto', verbose=True)
+    z = z_samples.mean(axis=0)
+    z_stdev = z_samples.std(axis=0)
+    z_lower = z - z_stdev*2
+    z_upper = z + z_stdev*2
+
+    fig, ax = plt.subplots(4)
+    x = np.linspace(0,1,len(trials))
+    ax[0].bar(x, successes, width=1./len(x), color='darkblue', alpha=0.3)
+    ax[0].bar(x, trials-successes, width=1./len(x), color='skyblue', alpha=0.3, bottom=successes)
+    ax[0].set_ylim([0,30])
+    ax[0].set_xlim([0,1])
+    ax[0].set_ylabel('Trials and successes')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,12]) / (np.arange(z_samples.shape[0])+1.), color='orange')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,37]) / (np.arange(z_samples.shape[0])+1.), color='skyblue')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,63]) / (np.arange(z_samples.shape[0])+1.), color='black')
+    ax[1].plot(np.arange(z_samples.shape[0])+1, np.cumsum(z_samples[:,87]) / (np.arange(z_samples.shape[0])+1.), color='#009E73')
+    ax[1].set_xlim([1,z_samples.shape[0]])
+    ax[1].set_ylim([0,1])
+    ax[1].set_ylabel('Mean values')
+    ax[2].hist(lam_samples, 50)
+    ax[2].set_xlabel('Lambda values')
+    ax[2].set_ylabel('Samples')
+    ax[3].scatter(x, probs, alpha=0.5)
+    ax[3].plot(x, z, lw=2, color='orange')
+    ax[3].fill_between(x, z_lower, z_upper, alpha=0.3, color='orange')
+    ax[3].set_ylim([0,1])
+    ax[3].set_xlim([0,1])
+    ax[3].set_ylabel('Probability of success')
+    plt.show()
+    plt.clf()
+
+def test_sample_gtf_gaussian():
     # Load the data and create the penalty matrix
     k = 0
     y = np.zeros(100)
@@ -163,3 +300,6 @@ if __name__ == '__main__':
     
     plt.show()
     plt.clf()
+
+if __name__ == '__main__':
+    test_sample_gtf_gaussian()
