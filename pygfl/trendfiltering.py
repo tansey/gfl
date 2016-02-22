@@ -68,11 +68,11 @@ class TrendFilteringSolver:
 def test_solve_gtf():
     # Load the data and create the penalty matrix
     max_k = 3
-    # y = (np.sin(np.linspace(-np.pi, np.pi, 100)) + 1) * 5
-    # y[25:75] += np.sin(np.linspace(1.5*-np.pi, np.pi*2, 50))*5 ** (np.abs(np.arange(50) / 25.))
-    # y += np.random.normal(0,1.0,size=len(y))
+    y = (np.sin(np.linspace(-np.pi, np.pi, 100)) + 1) * 5
+    y[25:75] += np.sin(np.linspace(1.5*-np.pi, np.pi*2, 50))*5 ** (np.abs(np.arange(50) / 25.))
+    y += np.random.normal(0,1.0,size=len(y))
     # np.savetxt('/Users/wesley/temp/tfdata.csv', y, delimiter=',')
-    y = np.loadtxt('/Users/wesley/temp/tfdata.csv', delimiter=',')
+    # y = np.loadtxt('/Users/wesley/temp/tfdata.csv', delimiter=',')
     mean_offset = y.mean()
     y -= mean_offset
     stdev_offset = y.std()
