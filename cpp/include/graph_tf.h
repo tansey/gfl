@@ -25,7 +25,7 @@
 
 int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
                                        int dknrows, int dkncols, int dknnz, int *dkrows, int *dkcols, double *dkvals,
-                                       int maxsteps, double converge,
+                                       int maxsteps, double rel_tol,
                                        double *beta, double *u);
 
 int conjugate_gradient(cs *A, double *b, double *x, double rel_tol);

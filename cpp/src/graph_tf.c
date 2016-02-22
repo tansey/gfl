@@ -22,7 +22,7 @@
 int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
                                        int dknrows, int dkncols, int dknnz,
                                        int *dkrows, int *dkcols, double *dkvals,
-                                       int maxsteps, double converge,
+                                       int maxsteps, double rel_tol,
                                        double *beta, double *u)
 {
     int i;
@@ -72,11 +72,11 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
     cs_dot_vec(dk, y, dky);
 
     step = 0;
-    cur_converge = converge + 1;
+    cur_converge = rel_tol + 1;
     step_size = 1.0;
     
     /* Perform the Projected Newton iterations until convergence */
-    while(step < maxsteps && cur_converge > converge)
+    while(step < maxsteps && cur_converge > rel_tol)
     {
         /* Calculate the complete gradient */
         cs_dot_vec(hessian, u, gradient);
@@ -84,7 +84,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
         
         /* Calculate the boundary set and get the reduced gradient */
         for (nfree = 0, i = 0; i < dknrows; i++){
-            boundary[i] = (u[i] == lam && gradient[i] < -converge) || (u[i] == -lam && gradient[i] > -converge);
+            boundary[i] = (u[i] == lam && gradient[i] < -rel_tol) || (u[i] == -lam && gradient[i] > -rel_tol);
             if (!boundary[i]){
                 reduced_cols[i] = nfree;
                 reduced_gradient[nfree] = gradient[i];
@@ -109,7 +109,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
         reduced_hessian->p[reduced_hessian->n] = nfree;
 
         /* Compute the reduced direction via conjugate gradient */
-        j = conjugate_gradient(reduced_hessian, reduced_gradient, reduced_direction, converge);
+        j = conjugate_gradient(reduced_hessian, reduced_gradient, reduced_direction, rel_tol);
 
         /* Take the projected Newton step */
         for (i = 0; i < dknrows; i++){
@@ -124,7 +124,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
 
         /* Hack to handle odd k converging prematurely */
         if (step < 1)
-            cur_converge = 1 + converge;
+            cur_converge = 1 + rel_tol;
 
         step_size *= 0.99;
         step++;
@@ -167,7 +167,6 @@ int conjugate_gradient(cs *A, double *b, double *x, double rel_tol)
     n = A->m;
 
     r            = (double *) malloc(n * sizeof(double));
-    rprev        = (double *) malloc(n * sizeof(double));
     p            = (double *) malloc(n * sizeof(double));
     Ap           = (double *) malloc(n * sizeof(double));
 
@@ -185,13 +184,18 @@ int conjugate_gradient(cs *A, double *b, double *x, double rel_tol)
         }
 
         /* Check if we're close enough */
-        if (vec_norm(n, r) <= rel_tol){ return step; }
+        if (vec_norm(n, r) <= rel_tol){ break; }
 
         rdotr = vec_dot_vec(n, r, r);
         beta = rdotr / rdotr_prev;
 
         for (i = 0; i < n; i++){ p[i] = r[i] + beta * p[i]; }
     }
+
+    free(r);
+    free(p);
+    free(Ap);
+
     return step;
 }
 
