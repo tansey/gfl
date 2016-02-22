@@ -1,150 +1,70 @@
 /****************************************************************************
- * Copyright (C) 2014 by Taylor Arnold, Veeranjaneyulu Sadhanala,           *
- *                       Ryan Tibshirani                                    *
+ * Copyright (C) 2016 by Wesley Tansey                                      *
  *                                                                          *
- * This modified file is released under the MIT license as long as it is    *
- * included and used within the gfl library / package. The authors of gfl   *
- * make no copyright claims to this portion of the code and provide no      *
- * guarantees. If you are using this code for anything other than the gfl   *
- * library / package, you are subject to the license for the original       *
- * glmgen library / package (see below).                                    *
+ * This file is part of the the GFL library / package.                      *
  *                                                                          *
- * This file is part of the glmgen library / package.                       *
+ *   GFL is free software: you can redistribute it and/or                   *
+ *   modify it under the terms of the GNU Lesser General Public License     *
+ *   as published by the Free Software Foundation, either version 3 of      *
+ *   the License, or (at your option) any later version.                    *
  *                                                                          *
- *   glmgen is free software: you can redistribute it and/or modify it      *
- *   under the terms of the GNU Lesser General Public License as published  *
- *   by the Free Software Foundation, either version 2 of the License, or   *
- *   (at your option) any later version.                                    *
- *                                                                          *
- *   glmgen is distributed in the hope that it will be useful,              *
+ *   GFL is distributed in the hope that it will be useful,                 *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of         *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
  *   GNU Lesser General Public License for more details.                    *
  *                                                                          *
  *   You should have received a copy of the GNU Lesser General Public       *
- *   License along with glmgen. If not, see <http://www.gnu.org/licenses/>. *
+ *   License along with GFL. If not, see <http://www.gnu.org/licenses/>.    *
  ****************************************************************************/
-
-/**
- * @file utils.h
- * @author Taylor Arnold, Ryan Tibshirani, Veerun Sadhanala
- * @date 2014-12-23
- * @brief Utility functions for fitting trend filtering models.
- *
- * Here.
- */
 
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "cs.h" /* for cs structures */
-
-/* Method codes (only TF_ADMM currently implemented) */
-#define TF_ADMM 0
-#define TF_PRIMALDUAL_IP 1
-#define TF_PROJECTED_NEWTON 2
-
-/* Family codes */
-#define FAMILY_GAUSSIAN 0
-#define FAMILY_LOGISTIC 1
-#define FAMILY_POISSON 2
+#include <math.h>
+#include <stdio.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_sf.h>
+#include <time.h>
+#include "csparse.h"
 
 /* Define MAX and MIN functions */
+#ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef MIN
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 
 #ifndef M_LN_SQRT_2PI
 #define M_LN_SQRT_2PI   0.918938533204672741780329736406    /* log(sqrt(2*pi)) */
 #endif
 
-/* Custom structures */
 
-typedef struct gcs_qr /* holds numeric and symbolic qr together */
-{
-  csi m ;         /* number of rows */
-  csi n ;         /* number of columns */
-  css *S ;        /* symbolic qr output */
-  csn *N ;        /* numeric qr output */
-  double * W ;    /* pre-allocated working space for the solver */
-} gqr ;
+void print_vector(int n, double *v);
 
-typedef double (*func_RtoR)(double); /* double to double function typedef */
+double vec_mean(int n, double *x);
+double vec_mean_int(int n, int *x);
+void vec_abs(int n, double *x);
+void vec_plus_vec(int n, double *a, double *b, double *c);
+void vec_minus_vec(int n, double *a, double *b, double *c);
+double vec_dot_vec(int n, double *a, double *b);
+double vec_sum(int n, double *x);
+double vec_dot_beta(int n, int *cols, double *vals, double *beta);
+double vec_norm(int n, double *x);
+void mat_dot_vec(int nrows, int *rowbreaks, int *cols, double *A, double *x, double *b);
 
-typedef enum { FIRST, SECOND } bt_node_lvl;
+/* Truncated normal sampling routines */
+double norm_rs(const gsl_rng *random, double a, double b);
+double exp_rs(const gsl_rng *random, double a, double b);
+double half_norm_rs(const gsl_rng *random, double a, double b);
+double unif_rs(const gsl_rng *random, double a, double b);
+double rnorm_trunc (const gsl_rng *random, double mu, double sigma, double lower, double upper);
+double rnorm_trunc_norand (double mu, double sigma, double lower, double upper);
+double log_norm_pdf(double x, double mu, double sigma);
 
-struct btreenode
-{
-  struct btreenode *leftchild;
-  double key;
-  struct btreenode *ids;
-  bt_node_lvl node_lvl;
-  struct btreenode *rightchild;
-};
-
-struct llnode
-{
-  int value;
-  struct llnode *next;
-};
-
-typedef struct btreenode btnode;
-
-typedef struct llnode llnode;
-typedef llnode linkedlist;
-
-/* Small utility functions found in utils.c */
-double glmgen_factorial(int n);
-double l1norm(double * x, int n);
-int is_nan(double x);
-int has_nan(double * x, int n);
-int count_nans(double * x, int n);
-
-cs * scalar_plus_diag(const cs * A, double b, double *D);
-void diag_times_sparse(const cs * A, double * w);
-
-double logi_b(double x);
-double logi_b1(double x);
-double logi_b2(double x);
-double pois_b(double x);
-double pois_b1(double x);
-double pois_b2(double x);
-
-void thin(double* x, double* y, double* w,
-          int n, int k, double** xt, double** yt,
-          double** wt, int* nt_ptr, double x_cond);
-
-/* Utility functions for solving a linear system with a gqr object */
-gqr * glmgen_qr(const cs * A);
-csi glmgen_qrsol(gqr * B, double * b);
-csi glmgen_gqr_free(gqr * A);
-
-/* Generic line search */
-double line_search(double * y, double * x, double * w, int n, int k, double lam,
-    func_RtoR b, func_RtoR b1,
-    double * beta, double * d,
-    double alpha, double gamma, int max_iter,
-    int * iter, double * Db, double * Dd);
-
-/* Custom implementation of balanced trees */
-void bt_insert (btnode** bt, int id, double val);
-void bt_insert_inner (btnode **bt, int id);
-void bt_delete (btnode** bt, int id, double val);
-void bt_delete_inner (btnode **bt, int id);
-void bt_delete_found_node(btnode **bt, btnode **parent, btnode *x);
-void bt_search (btnode **bt, double val,
-    btnode **par, btnode **x, int *found);
-void bt_find_min (btnode* bt, btnode** x);
-void bt_find_min_twice (btnode* bt, btnode** x);
-void bt_inorder (btnode* bt);
-void bt_free (btnode *bt);
-
-/* Custom implementation of linked lists */
-llnode* create_node(int val);
-void insert_node(linkedlist** ll, int val);
-void delete_node(linkedlist** ll, int key);
-int isempty(linkedlist* ll);
-int ll_length(linkedlist* ll);
-void display(linkedlist* ll);
-void ll_free(linkedlist* ll);
+void cs_dot_vec(cs *A, double *x, double *b);
+void vec_dot_cs(double *x, cs *A, double *b);
 
 #endif
+

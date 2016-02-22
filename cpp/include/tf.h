@@ -41,10 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
-
-/* Define MAX and MIN functions */
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#include "utils.h"
 
 /* Dynamic programming routines */
 

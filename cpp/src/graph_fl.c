@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2015 by Wesley Tansey                                      *
+ * Copyright (C) 2016 by Wesley Tansey                                      *
  *                                                                          *
  * This file is part of the the GFL library / package.                      *
  *                                                                          *
@@ -155,10 +155,6 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
         else
             update_beta(n, y, z, u, nzmap, zmap, alpha, beta);
 
-        printf("step %d\n", step);
-        print_vector(n, beta);
-        printf("\n");
-        
         /* swap the z buffers */
         ztemp = z;
         z = zold;
@@ -404,15 +400,6 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
     free(tf_dp_buf);
 
     return step;
-}
-
-void print_vector(int n, double *v)
-{
-    int i;
-    printf("[");
-    for (i = 0; i < n; i++)
-        printf(" %f", v[i]);
-    printf("]");
 }
 
 void update_beta(int n, double *y, double *z, double *u, int *nzmap, int *zmap, double alpha, double *beta)

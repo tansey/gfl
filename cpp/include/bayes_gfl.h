@@ -23,13 +23,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_sf.h>
-#include <time.h>
 
-#include "graph_fl.h"
 #include "utils.h"
+
 
 /************************
  *     Main methods     *
@@ -117,21 +113,7 @@ void sample_likelihood_poisson(const gsl_rng *random,
 void calc_coefs(int n, 
                 int dk_rows, int *dk_rowbreaks, int *dk_cols,
                 int **coefs, int *coef_breaks);
-double vec_mean(int n, double *x);
-double vec_mean_int(int n, int *x);
-void mat_dot_vec(int nrows, int *rowbreaks, int *cols, double *A, double *x, double *b);
-void vec_abs(int n, double *x);
-double vec_sum(int n, double *x);
-double vec_dot_beta(int n, int *cols, double *vals, double *beta);
 
-/* Truncated normal sampling routines */
-double norm_rs(const gsl_rng *random, double a, double b);
-double exp_rs(const gsl_rng *random, double a, double b);
-double half_norm_rs(const gsl_rng *random, double a, double b);
-double unif_rs(const gsl_rng *random, double a, double b);
-double rnorm_trunc (const gsl_rng *random, double mu, double sigma, double lower, double upper);
-double rnorm_trunc_norand (double mu, double sigma, double lower, double upper);
-double log_norm_pdf(double x, double mu, double sigma);
 #endif
 
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2015 by Wesley Tansey                                      *
+ * Copyright (C) 2016 by Wesley Tansey                                      *
  *                                                                          *
  * This file is part of the the GFL library / package.                      *
  *                                                                          *
@@ -21,8 +21,8 @@
 #define GRAPH_FL_H
 
 #include <math.h>
-#include <stdio.h>
 #include "tf.h"
+#include "utils.h"
 
 #define VARYING_PENALTY_DELAY 50
 
@@ -70,8 +70,6 @@ void update_z(int ntrails, int *trails, int *breakpoints, double *beta, double *
 void update_u(int n, double *beta, double *z, int *zmap, int *nzmap, double *u);
 double primal_resnorm(int n, double *beta, double *z, int *nzmap, int *zmap);
 double dual_resnorm(int nz, double *z, double *zold, double alpha);
-
-void print_vector(int n, double *v);
 
 #endif
 
