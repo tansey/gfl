@@ -20,13 +20,23 @@
 #ifndef GRAPH_TF_H
 #define GRAPH_TF_H
 
+#include <string.h>
 #include "csparse.h"
 #include "utils.h"
 
+#define GTF_PN_STEP_SIZE_DECAY 0.99
+
 int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
-                                       int dknrows, int dkncols, int dknnz, int *dkrows, int *dkcols, double *dkvals,
+                                       int dknrows, int dkncols, int dknnz,
+                                       int *dkrows, int *dkcols, double *dkvals,
                                        int maxsteps, double rel_tol,
                                        double *beta, double *u);
+
+int graph_trend_filtering_logit_warm (int n, int *trials, int *successes, double lam,
+                                             int dknrows, int dkncols, int dknnz,
+                                             int *dkrows, int *dkcols, double *dkvals,
+                                             int maxsteps, double rel_tol,
+                                             double *beta, double *u);
 
 int conjugate_gradient(cs *A, double *b, double *x, double rel_tol);
 #endif
