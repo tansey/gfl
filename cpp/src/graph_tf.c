@@ -219,6 +219,73 @@ int graph_trend_filtering_logit_warm (int n, int *trials, int *successes, double
     return step;
 }
 
+int graph_trend_filtering_poisson_warm (int n, int *obs, double lam,
+                                             int dknrows, int dkncols, int dknnz,
+                                             int *dkrows, int *dkcols, double *dkvals,
+                                             int maxsteps, double rel_tol,
+                                             double *beta, double *u)
+{
+    int i;
+    int step;
+    double cur_converge;
+    double *y;
+    double *w;
+    double *b1;
+    double *b2;
+    double *prev_beta;
+
+    y                    = (double *) malloc(n * sizeof(double));
+    w                    = (double *) malloc(n * sizeof(double));
+    prev_beta            = (double *) malloc(n * sizeof(double));
+
+    b1 = beta;
+    b2 = prev_beta;
+
+    memcpy(prev_beta, beta, n * sizeof(double));
+
+    step = 0;
+    cur_converge = rel_tol + 1;
+
+    while(step < maxsteps && cur_converge > rel_tol)
+    {
+        /* Perform a second-order Taylor expansion */
+        for (i = 0; i < n; i++)
+        {
+            w[i] = gsl_sf_exp(beta[i]);
+            y[i] = obs[i] / w[i] + beta[i] - 1.0;
+        }
+
+        /* Swap the beta buffers */
+        if (beta == b1){
+            beta = b2;
+            prev_beta = b1;
+        } else {
+            beta = b1;
+            prev_beta = b2;
+        }
+
+        /* Solve the Gaussian loss sub-problem */
+        graph_trend_filtering_weight_warm (n, y, w, lam,
+                                           dknrows, dkncols, dknnz,
+                                           dkrows, dkcols, dkvals,
+                                           maxsteps, rel_tol,
+                                           beta, u);
+
+        /* Track the change in beta to determine stopping criteria */
+        vec_minus_vec(n, beta, prev_beta, w);
+        cur_converge = vec_norm(n, w);
+
+        step++;
+    }
+
+    free(y);
+    free(w);
+    if(b2 == beta) { memcpy(b1, b2, n * sizeof(double)); beta = b1; } /* swap the buffers back if necessary */
+    free(b2);
+    for(i = 0; i < n; i++){ beta[i] = gsl_sf_exp(beta[i]); }
+    return step;
+}
+
 int conjugate_gradient(cs *A, double *b, double *x, double rel_tol)
 {
     int i;

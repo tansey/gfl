@@ -38,6 +38,12 @@ int graph_trend_filtering_logit_warm (int n, int *trials, int *successes, double
                                              int maxsteps, double rel_tol,
                                              double *beta, double *u);
 
+int graph_trend_filtering_poisson_warm (int n, int *obs, double lam,
+                                             int dknrows, int dkncols, int dknnz,
+                                             int *dkrows, int *dkcols, double *dkvals,
+                                             int maxsteps, double rel_tol,
+                                             double *beta, double *u);
+
 int conjugate_gradient(cs *A, double *b, double *x, double rel_tol);
 #endif
 
