@@ -33,40 +33,40 @@
 void bayes_gfl_gaussian_laplace (int n, double *y, double *w,
                                 int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                 double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                int iterations, int burn, int thin,
+                                long iterations, long burn, long thin,
                                 double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                 int iterations, int burn, int thin,
+                                 long iterations, long burn, long thin,
                                  double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_poisson_laplace (int n, int *obs,
                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                 int iterations, int burn, int thin,
+                                 long iterations, long burn, long thin,
                                  double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_poisson_doublepareto (int n, int *obs,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples);
 
 /********************

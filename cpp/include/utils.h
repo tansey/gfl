@@ -42,6 +42,7 @@
 
 
 void print_vector(int n, double *v);
+double lex_ran_flat(const gsl_rng *random, double lower, double upper); /* lower exclusive uniform random number */
 
 double vec_mean(int n, double *x);
 double vec_mean_int(int n, int *x);

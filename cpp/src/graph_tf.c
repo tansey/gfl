@@ -110,7 +110,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
         reduced_hessian->p[reduced_hessian->n] = nfree;
 
         /* Compute the reduced direction via conjugate gradient */
-        j = conjugate_gradient(reduced_hessian, reduced_gradient, reduced_direction, rel_tol);
+        j = conjugate_gradient(reduced_hessian, reduced_gradient, reduced_direction, MAX_CG_STEPS, rel_tol);
 
         /* Take the projected Newton step */
         for (i = 0; i < dknrows; i++){
@@ -286,7 +286,7 @@ int graph_trend_filtering_poisson_warm (int n, int *obs, double lam,
     return step;
 }
 
-int conjugate_gradient(cs *A, double *b, double *x, double rel_tol)
+int conjugate_gradient(cs *A, double *b, double *x, int max_iterations, double rel_tol)
 {
     int i;
     int n;
@@ -309,7 +309,7 @@ int conjugate_gradient(cs *A, double *b, double *x, double rel_tol)
     for (i = 0; i < n; i++){ r[i] = p[i] = b[i]; x[i] = 0; }
     rdotr = vec_dot_vec(n, r, r);
 
-    for (step = 0; step < n; step++){
+    for (step = 0; step < n && (max_iterations < 0 || step < max_iterations); step++){
         rdotr_prev = rdotr;
         cs_dot_vec(A, p, Ap);
         alpha = rdotr / vec_dot_vec(n, p, Ap);

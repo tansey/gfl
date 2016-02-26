@@ -22,7 +22,7 @@
 void bayes_gfl_gaussian_laplace (int n, double *y, double *w,
                                 int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                 double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                int iterations, int burn, int thin,
+                                long iterations, long burn, long thin,
                                 double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -30,7 +30,7 @@ void bayes_gfl_gaussian_laplace (int n, double *y, double *w,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -90,7 +90,7 @@ void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -98,7 +98,7 @@ void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -158,7 +158,7 @@ void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
 void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                 int iterations, int burn, int thin,
+                                 long iterations, long burn, long thin,
                                  double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -166,7 +166,7 @@ void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -228,7 +228,7 @@ void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -236,7 +236,7 @@ void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -298,7 +298,7 @@ void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
 void bayes_gfl_poisson_laplace (int n, int *obs,
                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
-                                 int iterations, int burn, int thin,
+                                 long iterations, long burn, long thin,
                                  double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -306,7 +306,7 @@ void bayes_gfl_poisson_laplace (int n, int *obs,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -366,7 +366,7 @@ void bayes_gfl_poisson_doublepareto (int n, int *obs,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,
                                       double lam_walk_stdev, double lam0, double dp_hyperparameter,
-                                      int iterations, int burn, int thin,
+                                      long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples)
 {
     int i;
@@ -374,7 +374,7 @@ void bayes_gfl_poisson_doublepareto (int n, int *obs,
     double *beta;
     int **coefs;
     int *coef_breaks;
-    int iteration;
+    long iteration;
     int sample_idx;
     double ymean;
     const gsl_rng_type *T;
@@ -488,7 +488,7 @@ void sample_prior_aux_laplace(const gsl_rng *random, double *beta,
     vec_abs(dk_rows, s);
 
     for(i = 0; i < dk_rows; i++){
-        s[i] = -gsl_sf_log(gsl_ran_flat (random, 0.0, gsl_sf_exp(-lambda * s[i]))) / lambda;
+        s[i] = -gsl_sf_log(lex_ran_flat (random, 0.0, gsl_sf_exp(-lambda * s[i]))) / lambda;
     }
 }
 
@@ -504,7 +504,7 @@ void sample_prior_aux_doublepareto(const gsl_rng *random, double *beta,
 
     for(i = 0; i < dk_rows; i++){
         z = pow(1. + s[i] / (dp_hyperparameter * lambda), -dp_hyperparameter - 1.);
-        s[i] = dp_hyperparameter * lambda * (gsl_sf_exp(-gsl_sf_log(gsl_ran_flat(random, 0, z)) / (dp_hyperparameter + 1.0)) - 1);
+        s[i] = dp_hyperparameter * lambda * (gsl_sf_exp(-gsl_sf_log(lex_ran_flat(random, 0, z)) / (dp_hyperparameter + 1.0)) - 1);
     }
 }
 
@@ -556,7 +556,6 @@ void sample_likelihood_gaussian(const gsl_rng *random,
                 lower = MAX(lower, right);
                 upper = MIN(upper, left);
             }
-
             beta[j] = rnorm_trunc(random, y[j], 1. / sqrt(w[j]), lower, upper);
         }
     }
@@ -583,12 +582,12 @@ void sample_likelihood_binomial(const gsl_rng *random,
     for(j = 0; j < n; j++)
     {
         if (successes[j] > 0){
-            lower = gsl_ran_flat(random, 0, gsl_sf_exp(successes[j]*beta[j]));
+            lower = lex_ran_flat(random, 0, gsl_sf_exp(successes[j]*beta[j]));
             lower = gsl_sf_log(lower) / (double)successes[j];
         } else {
             lower = -INFINITY;
         }
-        upper = gsl_ran_flat(random, 0, beta[j] < -160 ? 1 : gsl_sf_exp(-trials[j] * gsl_sf_log(1 + gsl_sf_exp(beta[j]))));
+        upper = lex_ran_flat(random, 0, beta[j] < -160 ? 1 : gsl_sf_exp(-trials[j] * gsl_sf_log(1 + gsl_sf_exp(beta[j]))));
         upper = gsl_sf_log(pow(upper,-1.0/(double)trials[j]) - 1);
         /* Bound the sampling range */
         for (i = 0; i < coef_breaks[j]; i++)
@@ -643,12 +642,12 @@ void sample_likelihood_poisson(const gsl_rng *random,
     for(j = 0; j < n; j++)
     {
         if (obs[j] > 0){
-            lower = gsl_ran_flat(random, 0, gsl_sf_exp(obs[j]*beta[j]));
+            lower = lex_ran_flat(random, 0, gsl_sf_exp(obs[j]*beta[j]));
             lower = gsl_sf_log(lower) / (double)obs[j];
         } else {
             lower = -INFINITY;
         }
-        upper = gsl_ran_flat(random, 0, beta[j] < -160 ? 1 : gsl_sf_exp(-gsl_sf_exp(beta[j])));
+        upper = lex_ran_flat(random, 0, beta[j] < -160 ? 1 : gsl_sf_exp(-gsl_sf_exp(beta[j])));
         upper = gsl_sf_log(-gsl_sf_log(upper));
         /* Bound the sampling range */
         for (i = 0; i < coef_breaks[j]; i++)

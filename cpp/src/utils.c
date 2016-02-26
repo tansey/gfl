@@ -28,6 +28,14 @@ void print_vector(int n, double *v)
     printf("]");
 }
 
+double lex_ran_flat(const gsl_rng *random, double lower, double upper)
+{
+    double u;
+    if (lower == upper) { return upper; }
+    do { u = gsl_ran_flat(random, lower, upper); } while (u == lower);
+    return u;
+}
+
 double vec_mean(int n, double *x)
 {
     int i;
@@ -166,7 +174,7 @@ double exp_rs(const gsl_rng *random, double a, double b)
     while(z > (b-a)){
         z = gsl_ran_exponential(random, rate);
     }
-    u = gsl_ran_flat(random, 0.0, 1.0);
+    u = lex_ran_flat(random, 0.0, 1.0);
 
     while( gsl_sf_log(u) > (-0.5*z*z))
     {
@@ -174,7 +182,7 @@ double exp_rs(const gsl_rng *random, double a, double b)
         while(z > (b-a)){
             z = gsl_ran_exponential(random, rate);  
         }
-        u = gsl_ran_flat(random, 0.0, 1.0);
+        u = lex_ran_flat(random, 0.0, 1.0);
     }
     return (z+a);
 }
@@ -202,6 +210,7 @@ double unif_rs(const gsl_rng *random, double a, double b)
    double xstar;
    double logphixstar;
    double x;
+   double u;
    double logu;
 
    /* Find the argmax (b is always >= 0)
@@ -212,13 +221,14 @@ double unif_rs(const gsl_rng *random, double a, double b)
         xstar = a;
     }
     logphixstar = log_norm_pdf(xstar, 0, 1);
-
     x = gsl_ran_flat(random, a, b);
-    logu = gsl_sf_log(gsl_ran_flat(random, 0.0, 1.0));
+    u = lex_ran_flat(random, 0.0, 1.0);
+    logu = gsl_sf_log(u);
     while( logu > (log_norm_pdf(x, 0, 1) - logphixstar))
     {
         x = gsl_ran_flat(random, a, b);
-        logu = gsl_sf_log(gsl_ran_flat(random, 0.0, 1.0));
+        u = lex_ran_flat(random, 0.0, 1.0);
+        logu = gsl_sf_log(u);
     }
     return x;
 }
@@ -258,11 +268,9 @@ double rnorm_trunc (const gsl_rng *random, double mu, double sigma, double lower
             a = -b;
             b = INFINITY;
         }
-
         /* The two possibilities for this scenario */
         if(a <= 0.45) { z = norm_rs(random, a, b); }
         else { z = exp_rs(random, a, b); }
-        
         if(change) { z = -z; }
     }
     /* Second scenario */
@@ -284,14 +292,13 @@ double rnorm_trunc (const gsl_rng *random, double mu, double sigma, double lower
             a = -tmp;
             change = 1;
         }
-
         lograt = log_norm_pdf(a, 0, 1) - log_norm_pdf(b, 0, 1);
         if(lograt <= logt2) { z = unif_rs(random, a,b); }
         else if((lograt > logt1) && (a < t3)) { z = half_norm_rs(random, a,b); }
         else { z = exp_rs(random, a,b); }
         if(change) { z = -z; }
     }
-
+    
     return (sigma*z + mu);
 }
 

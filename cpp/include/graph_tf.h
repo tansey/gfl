@@ -25,6 +25,7 @@
 #include "utils.h"
 
 #define GTF_PN_STEP_SIZE_DECAY 0.99
+#define MAX_CG_STEPS 200
 
 int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
                                        int dknrows, int dkncols, int dknnz,
@@ -44,7 +45,7 @@ int graph_trend_filtering_poisson_warm (int n, int *obs, double lam,
                                              int maxsteps, double rel_tol,
                                              double *beta, double *u);
 
-int conjugate_gradient(cs *A, double *b, double *x, double rel_tol);
+int conjugate_gradient(cs *A, double *b, double *x, int max_iterations, double rel_tol);
 #endif
 
 

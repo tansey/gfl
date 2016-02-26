@@ -101,22 +101,22 @@ def sparse_matrix_to_edges(data):
             edges[y].append(x)
     return edges
 
-def pretty_str(p, decimal_places=2):
+def pretty_str(p, decimal_places=2, print_zero=True, label_columns=False):
     '''Pretty-print a matrix or vector.'''
     if len(p.shape) == 1:
-        return vector_str(p, decimal_places)
+        return vector_str(p, decimal_places, print_zero)
     if len(p.shape) == 2:
-        return matrix_str(p, decimal_places)
+        return matrix_str(p, decimal_places, print_zero, label_columns)
     raise Exception('Invalid array with shape {0}'.format(p.shape))
 
-def matrix_str(p, decimal_places=2):
+def matrix_str(p, decimal_places=2, print_zero=True, label_columns=False):
     '''Pretty-print the matrix.'''
-    return '[{0}]'.format("\n  ".join([vector_str(a, decimal_places) for a in p]))
+    return '[{0}]'.format("\n  ".join([(str(i) if label_columns else '') + vector_str(a, decimal_places, print_zero) for i, a in enumerate(p)]))
 
-def vector_str(p, decimal_places=2):
+def vector_str(p, decimal_places=2, print_zero=True):
     '''Pretty-print the vector values.'''
     style = '{0:.' + str(decimal_places) + 'f}'
-    return '[{0}]'.format(", ".join([style.format(a) for a in p]))
+    return '[{0}]'.format(", ".join([' ' if not print_zero and a == 0 else style.format(a) for a in p]))
 
 
 def make_directory(base, subdir):
@@ -196,6 +196,14 @@ def calc_plateaus(beta, edges, rel_tol=1e-4, verbose=0):
     # Returns the list of plateaus and their values
     return plateaus
 
+def nearly_unique(arr, rel_tol=1e-4, verbose=0):
+    '''Heuristic method to return the uniques within some precision in a numpy array'''
+    results = np.array([arr[0]])
+    for x in arr:
+        if np.abs(results - x).min() > rel_tol:
+            results = np.append(results, x)
+    return results
+
 def grid_graph_edges(rows, cols):
     edges = []
     for x in xrange(cols):
@@ -231,10 +239,72 @@ def row_col_trails(rows, cols):
     breakpoints[rows:] = nnodes + np.arange(1, cols+1) * rows
     return ntrails, trails, breakpoints, grid_graph_edges(rows, cols)
 
-def get_1d_penalty_matrix(length):
-    D = np.eye(length, dtype=float)[0:-1] * -1
-    for i in xrange(len(D)):
-        D[i,i+1] = 1
+def get_1d_penalty_matrix(length, sparse=False):
+    if sparse:
+        rows = np.repeat(np.arange(length-1), 2)
+        cols = np.repeat(np.arange(length), 2)[1:-1]
+        data = np.tile([-1, 1], length-1)
+        D = coo_matrix((data, (rows, cols)), shape=(length-1, length))
+    else:
+        D = np.eye(length, dtype=float)[0:-1] * -1
+        for i in xrange(len(D)):
+            D[i,i+1] = 1
+    return D
+
+def get_2d_penalty_matrix(rows, cols, sparse=True):
+    r = 0
+    rvals = []
+    cvals = []
+    data = []
+    for y in xrange(rows):
+        for x in xrange(cols - 1):
+            rvals.append(r)
+            rvals.append(r)
+            r += 1
+            cvals.append(y*cols+x)
+            cvals.append(y*cols+x+1)
+            data.append(-1)
+            data.append(1)
+    for y in xrange(rows - 1):
+        for x in xrange(cols):
+            rvals.append(r)
+            rvals.append(r)
+            r += 1
+            cvals.append(y*cols+x)
+            cvals.append((y+1)*cols+x)
+            data.append(-1)
+            data.append(1)
+    D = coo_matrix((data, (rvals, cvals)), shape=(r, rows*cols))
+    if not sparse:
+        D = np.array(D.todense())
+    return D
+
+def special_2d(rows, cols, sparse=True):
+    r = 0
+    rvals = []
+    cvals = []
+    data = []
+    for y in xrange(rows - 1):
+        for x in xrange(cols):
+            rvals.append(r)
+            rvals.append(r)
+            r += 1
+            cvals.append(y*cols+x)
+            cvals.append((y+1)*cols+x)
+            data.append(-1)
+            data.append(1)
+    for y in xrange(cols - 1):
+        for x in xrange(rows):
+            rvals.append(r)
+            rvals.append(r)
+            r += 1
+            cvals.append(y*rows+x+rows*cols)
+            cvals.append((y+1)*rows+x+rows*cols)
+            data.append(1)
+            data.append(-1)
+    D = coo_matrix((data, (rvals, cvals)), shape=(r, rows*cols*2))
+    if not sparse:
+        D = np.array(D.todense())
     return D
 
 def get_delta(D, k):
@@ -254,8 +324,8 @@ def decompose_delta(deltak):
         deltak = coo_matrix(deltak)
     dk_rows = deltak.shape[0]
     dk_rowbreaks = np.cumsum(deltak.getnnz(1), dtype="int32")
-    dk_cols = deltak.col
-    dk_vals = deltak.data
+    dk_cols = deltak.col.astype('int32')
+    dk_vals = deltak.data.astype('double')
     return dk_rows, dk_rowbreaks, dk_cols, dk_vals
 
 

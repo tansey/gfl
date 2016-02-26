@@ -28,7 +28,7 @@ gflbayes_gaussian_laplace.restype = None
 gflbayes_gaussian_laplace.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 gflbayes_gaussian_doublepareto = gflbayes_lib.bayes_gfl_gaussian_doublepareto
@@ -37,7 +37,7 @@ gflbayes_gaussian_doublepareto.argtypes = [c_int, ndpointer(c_double, flags='C_C
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
                 c_double, c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 gflbayes_binomial_laplace = gflbayes_lib.bayes_gfl_binomial_laplace
@@ -45,7 +45,7 @@ gflbayes_binomial_laplace.restype = None
 gflbayes_binomial_laplace.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 gflbayes_binomial_doublepareto = gflbayes_lib.bayes_gfl_binomial_doublepareto
@@ -54,7 +54,7 @@ gflbayes_binomial_doublepareto.argtypes = [c_int, ndpointer(c_int, flags='C_CONT
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
                 c_double, c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 gflbayes_poisson_laplace = gflbayes_lib.bayes_gfl_poisson_laplace
@@ -62,7 +62,7 @@ gflbayes_poisson_laplace.restype = None
 gflbayes_poisson_laplace.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'),
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 gflbayes_poisson_doublepareto = gflbayes_lib.bayes_gfl_poisson_doublepareto
@@ -71,7 +71,7 @@ gflbayes_poisson_doublepareto.argtypes = [c_int, ndpointer(c_int, flags='C_CONTI
                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                 c_double, c_double,
                 c_double, c_double, c_double,
-                c_int, c_int, c_int,
+                c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 trunc_norm = gflbayes_lib.rnorm_trunc_norand
@@ -102,7 +102,7 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
 
     if prior == 'laplace':
         if lambda_hyperparams == None:
-            lambda_hyperparams = (0.5, 0.5)
+            lambda_hyperparams = (0.5, np.sqrt(D.shape[0]))
     elif prior == 'doublepareto':
         if lambda_hyperparams == None:
             lambda_hyperparams = (0.01, 0.01)
@@ -111,8 +111,8 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
 
     # Run the Gibbs sampler
     sample_size = (iterations - burn) / thin
-    beta_samples = np.zeros((sample_size, D.shape[1]))
-    lam_samples = np.zeros(sample_size)
+    beta_samples = np.zeros((sample_size, D.shape[1]), dtype='double')
+    lam_samples = np.zeros(sample_size, dtype='double')
 
     if likelihood == 'gaussian':
         if prior == 'laplace':
@@ -267,7 +267,7 @@ def test_sample_gtf_gaussian():
     
     D = get_1d_penalty_matrix(len(y))
 
-    z_samples, lam_samples = sample_gtf((y, w), D, k, likelihood='gaussian', prior='doublepareto', verbose=True)
+    z_samples, lam_samples = sample_gtf((y, w), D, k, likelihood='gaussian', prior='laplace', verbose=True)
     y *= stdev_offset
     y += mean_offset
     z_samples *= stdev_offset
