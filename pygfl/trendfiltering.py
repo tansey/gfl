@@ -54,25 +54,21 @@ class TrendFilteringSolver:
         self.maxsteps = maxsteps
         self.converge = converge
 
-    def set_data(self, y, D, weights=None):
+    def set_data(self, y, D, k, weights=None):
         self.y = y
         self.nnodes = len(y)
         self.D = D
-        self.weights = weights
+        self.k = k
+        self.Dk = get_delta(D, k).tocoo()
+        self.Dk_minus_one = get_delta(self.D, self.k-1) if self.k > 0 else None
+        self.weights = weights if weights is not None else np.ones(len(self.y), dtype='double')
         self.beta = np.zeros(self.nnodes, dtype='double')
         self.steps = []
-        self.Dk = None
-        self.u = None
+        self.u = np.zeros(self.Dk.shape[0], dtype='double')
         self.edges = None
 
-    def solve(self, k, lam):
+    def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''
-        if self.Dk is None:
-            self.Dk = get_delta(self.D, k).tocoo()
-        if self.u is None:
-            self.u = np.zeros(self.Dk.shape[0], dtype='double')
-        if self.weights is None:
-            self.weights = np.ones(len(self.y), dtype='double')
         s = weighted_graphtf(self.nnodes, self.y, self.weights, lam,
                              self.Dk.shape[0], self.Dk.shape[1], self.Dk.nnz,
                              self.Dk.row.astype('int32'), self.Dk.col.astype('int32'), self.Dk.data.astype('double'),
@@ -81,9 +77,8 @@ class TrendFilteringSolver:
         self.steps.append(s)
         return self.beta
 
-    def solution_path(self, k, min_lambda, max_lambda, lambda_bins, verbose=0):
+    def solution_path(self, min_lambda, max_lambda, lambda_bins, verbose=0):
         '''Follows the solution path to find the best lambda value.'''
-        self.Dk = get_delta(self.D, k).tocoo()
         self.u = np.zeros(self.Dk.shape[0], dtype='double')
         lambda_grid = np.exp(np.linspace(np.log(max_lambda), np.log(min_lambda), lambda_bins))
         aic_trace = np.zeros(lambda_grid.shape) # The AIC score for each lambda value
@@ -94,7 +89,6 @@ class TrendFilteringSolver:
         beta_trace = []
         best_idx = None
         best_plateaus = None
-        Dk_minus_one = get_delta(self.D, k-1) if k > 0 else None
 
         if self.edges is None:
             self.edges = defaultdict(list)
@@ -109,14 +103,14 @@ class TrendFilteringSolver:
                 print '#{0} Lambda = {1}'.format(i, lam)
 
             # Fit to the final values
-            beta = self.solve(k, lam)
+            beta = self.solve(lam)
 
             if verbose:
                 print 'Calculating degrees of freedom'
 
             # Count the number of free parameters in the grid (dof) -- TODO: the graph trend filtering paper seems to imply we shouldn't multiply by (k+1)?
-            dof_vals = Dk_minus_one.dot(beta) if k > 0 else beta
-            plateaus = calc_plateaus(dof_vals, self.edges) if (k % 2) == 0 else nearly_unique(dof_vals)
+            dof_vals = self.Dk_minus_one.dot(beta) if self.k > 0 else beta
+            plateaus = calc_plateaus(dof_vals, self.edges, rel_tol=0.01) if (self.k % 2) == 0 else nearly_unique(dof_vals, rel_tol=0.03)
             dof_trace[i] = max(1,len(plateaus)) #* (k+1)
 
             if verbose:
@@ -143,7 +137,7 @@ class TrendFilteringSolver:
             beta_trace.append(np.array(beta))
             
             if verbose:
-                print 'DoF: {0} AIC: {1} AICc: {2} BIC: {3}'.format(dof_trace[i], aic_trace[i], aicc_trace[i], bic_trace[i])
+                print 'DoF: {0} AIC: {1} AICc: {2} BIC: {3}\n'.format(dof_trace[i], aic_trace[i], aicc_trace[i], bic_trace[i])
 
         if verbose:
             print 'Best setting (by BIC): lambda={0} [DoF: {1}, AIC: {2}, AICc: {3} BIC: {4}]'.format(lambda_grid[best_idx], dof_trace[best_idx], aic_trace[best_idx], aicc_trace[best_idx], bic_trace[best_idx])

@@ -131,13 +131,162 @@ void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                             dk_rows, dk_rowbreaks, dk_cols, deltak,
                                             lambda_hyperparam_a, lambda_hyperparam_b,
                                             lambda, dp_hyperparameter, lam_walk_stdev);
-
+        
         /* Sample each of the auxillary variables (one per row of Dk) */
         sample_prior_aux_doublepareto(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, lambda, dp_hyperparameter, s);
         
         /* Sample from the truncated Gaussian likelihood */
         sample_likelihood_gaussian(random, n, y, w, dk_rowbreaks, dk_cols, deltak, s, coefs, coef_breaks, beta);
+        
+        /* Add the sample */
+        if (iteration >= burn && (iteration % thin) == 0){
+            lambda_samples[sample_idx] = lambda;
+            memcpy(beta_samples[sample_idx], beta, n * sizeof(double));
+            sample_idx++;
+        }
+    }
 
+    free(s);
+    free(beta);
+    for (i = 0; i < n; i++){ free(coefs[i]); }
+    free(coefs);
+    free(coef_breaks);
+
+    gsl_rng_free(random);
+}
+
+void bayes_gfl_gaussian_doublepareto2 (int n, double *y, double *w,
+                                      int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                      double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                      double tau_hyperparameter,
+                                      long iterations, long burn, long thin,
+                                      double **beta_samples, double *lambda_samples)
+{
+    int i;
+    double *s;
+    double *beta;
+    int **coefs;
+    int *coef_breaks;
+    long iteration;
+    int sample_idx;
+    double ymean;
+    const gsl_rng_type *T;
+    gsl_rng *random;
+    double *tau;
+    double lambda;
+
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    random = gsl_rng_alloc (T);
+
+    s = (double *) malloc(dk_rows * sizeof(double));
+    coefs = (int **) malloc(n * sizeof(int*));
+    coef_breaks = (int *) malloc(n * sizeof(int));
+    beta = (double *) malloc(n * sizeof(double));
+    tau = (double *) malloc(dk_rows * sizeof(double));
+
+    /* Cache a lookup table to map from deltak column to the set of rows with 
+       non-zero entries for that column */
+    calc_coefs(n, dk_rows, dk_rowbreaks, dk_cols, coefs, coef_breaks);
+
+    /* Set all beta values to the mean to start */
+    ymean = vec_mean(n, y);
+    for (i = 0; i < n; i++){ beta[i] = ymean; }
+
+    /* Set all tau values to the MAP to start */
+    for (i = 0; i < dk_rows; i++){ tau[i] = tau_hyperparameter / (lambda_hyperparam_a / lambda_hyperparam_b); }
+    print_vector(dk_rows, tau);
+    printf("\n");
+    /* Run the Gibbs sampler */
+    for (iteration = 0, sample_idx = 0; iteration < iterations; iteration++)
+    {
+        printf("Iteration: %ld\n", iteration);
+        /* Sample the lambda penalty weight on the double Pareto prior */
+        lambda = sample_lambda_doublepareto2(random, beta,
+                                            dk_rows, dk_rowbreaks, dk_cols, deltak,
+                                            lambda_hyperparam_a, lambda_hyperparam_b,
+                                            tau_hyperparameter, tau);
+        printf("Lambda: %f\n", lambda);
+        printf("tau: ");
+        print_vector(dk_rows, tau);
+        printf("\n");
+        /* Sample each of the auxillary variables (one per row of Dk) */
+        sample_prior_aux_laplace_multilambda(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, tau, s);
+        
+        /* Sample from the truncated Gaussian likelihood */
+        sample_likelihood_gaussian(random, n, y, w, dk_rowbreaks, dk_cols, deltak, s, coefs, coef_breaks, beta);
+        
+        /* Add the sample */
+        if (iteration >= burn && (iteration % thin) == 0){
+            lambda_samples[sample_idx] = lambda;
+            memcpy(beta_samples[sample_idx], beta, n * sizeof(double));
+            sample_idx++;
+        }
+    }
+
+    free(s);
+    free(beta);
+    free(tau);
+    for (i = 0; i < n; i++){ free(coefs[i]); }
+    free(coefs);
+    free(coef_breaks);
+
+    gsl_rng_free(random);
+}
+
+void bayes_gfl_gaussian_cauchy (int n, double *y, double *w,
+                                      int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                      double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                      double lam_walk_stdev, double lam0,
+                                      long iterations, long burn, long thin,
+                                      double **beta_samples, double *lambda_samples)
+{
+    int i;
+    double *s;
+    double *beta;
+    int **coefs;
+    int *coef_breaks;
+    long iteration;
+    int sample_idx;
+    double ymean;
+    const gsl_rng_type *T;
+    gsl_rng *random;
+    double lambda;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    random = gsl_rng_alloc (T);
+
+    s = (double *) malloc(dk_rows * sizeof(double));
+    coefs = (int **) malloc(n * sizeof(int*));
+    coef_breaks = (int *) malloc(n * sizeof(int));
+    beta = (double *) malloc(n * sizeof(double));
+    lambda = lam0;
+
+    /* Cache a lookup table to map from deltak column to the set of rows with 
+       non-zero entries for that column */
+    calc_coefs(n, dk_rows, dk_rowbreaks, dk_cols, coefs, coef_breaks);
+
+    /* Set all beta values to the mean to start */
+    ymean = vec_mean(n, y);
+    for (i = 0; i < n; i++){ beta[i] = ymean; }
+
+    /* Run the Gibbs sampler */
+    for (iteration = 0, sample_idx = 0; iteration < iterations; iteration++)
+    {
+        /* Sample the lambda penalty weight on the double Pareto prior */
+        lambda = sample_lambda_cauchy(random, beta,
+                                            dk_rows, dk_rowbreaks, dk_cols, deltak,
+                                            lambda_hyperparam_a, lambda_hyperparam_b,
+                                            lambda, lam_walk_stdev);
+        
+        /* Sample each of the auxillary variables (one per row of Dk) */
+        sample_prior_aux_cauchy(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, lambda, s);
+        
+        /* Sample from the truncated Gaussian likelihood */
+        sample_likelihood_gaussian(random, n, y, w, dk_rowbreaks, dk_cols, deltak, s, coefs, coef_breaks, beta);
+        
         /* Add the sample */
         if (iteration >= burn && (iteration % thin) == 0){
             lambda_samples[sample_idx] = lambda;
@@ -431,6 +580,30 @@ void bayes_gfl_poisson_doublepareto (int n, int *obs,
     gsl_rng_free(random);
 }
 
+double sample_lambda_doublepareto2(const gsl_rng *random, double *beta, 
+                               int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                               double a, double b, double gamma, double *tau)
+{
+    int i;
+    double *x;
+    double lambda;
+
+    x = (double *) malloc(dk_rows * sizeof(double));
+
+    /* Sample the global lambda parameter */
+    lambda = gsl_ran_gamma(random, a + gamma * dk_rows, 1.0 / (b + vec_sum(dk_rows, tau)));
+
+    /* Sample the local tau parameters */
+    mat_dot_vec(dk_rows, dk_rowbreaks, dk_cols, deltak, beta, x);
+    vec_abs(dk_rows, x);
+    for (i = 0; i < dk_rows; i++){
+        tau[i] = gsl_ran_gamma(random, gamma+1, 1.0 / (x[i] + lambda));
+    }
+
+    free(x);
+
+    return lambda;
+}
 
 double sample_lambda_laplace(const gsl_rng *random, double *beta, 
                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
@@ -460,22 +633,69 @@ double sample_lambda_doublepareto(const gsl_rng *random, double *beta,
     double sum_term;
     double dotprod;
     double accept_ratio;
+    double log_accept_ratio;
+    int prev_break;
+
+    /*printf("lam0: %f", lam0);*/
+    lam1 = gsl_sf_exp(gsl_ran_gaussian(random, lam_walk_stdev) + gsl_sf_log(lam0));
+    /*printf("\tlam1: %f\n",lam1);*/
+
+    /* Lambda as an inverse scale parameter */
+    sum_term = 0;
+    prev_break = 0;
+    for (i = 0; i < dk_rows; i++){
+        dotprod = fabs(vec_dot_beta(dk_rowbreaks[i] - prev_break, dk_cols + prev_break, dk_vals + prev_break, beta));
+        sum_term += gsl_sf_log(1 + lam1 * dotprod / gamma) - gsl_sf_log(1 + lam0 * dotprod / gamma);
+        prev_break = dk_rowbreaks[i];
+    }
+    log_accept_ratio = (a - 1 + dk_rows) * (gsl_sf_log(lam1) - gsl_sf_log(lam0)) - b * (lam1 - lam0) - (gamma + 1) * sum_term;
+
+    if(log_accept_ratio < -20)
+        return lam0;
+    else if(log_accept_ratio > 0)
+        return lam1;
+
+    accept_ratio = gsl_sf_exp(log_accept_ratio);
+    if (gsl_ran_flat(random, 0, 1) <= accept_ratio)
+        return lam1;
+    return lam0;    
+}
+
+double sample_lambda_cauchy(const gsl_rng *random, double *beta,
+                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *dk_vals,
+                                  double a, double b,
+                                  double lam0, double lam_walk_stdev)
+{
+    int i;
+    double lam1;
+    double sum_term;
+    double dotprod;
+    double accept_ratio;
+    double log_accept_ratio;
     int prev_break;
 
     lam1 = gsl_sf_exp(gsl_ran_gaussian(random, lam_walk_stdev) + gsl_sf_log(lam0));
 
+    /* Lambda as an inverse scale parameter */
     sum_term = 0;
     prev_break = 0;
-    for(i = 0; i < dk_rows; i++){
+    for (i = 0; i < dk_rows; i++){
         dotprod = fabs(vec_dot_beta(dk_rowbreaks[i] - prev_break, dk_cols + prev_break, dk_vals + prev_break, beta));
-        sum_term += gsl_sf_log(1 + dotprod / (gamma * lam1)) - gsl_sf_log(1 + dotprod / (gamma * lam0));
+        dotprod *= dotprod;
+        sum_term += gsl_sf_log(1.0 + lam1 * lam1 * dotprod) - gsl_sf_log(1.0 + lam0 * lam0 * dotprod);
         prev_break = dk_rowbreaks[i];
     }
+    log_accept_ratio = (a - 1 + dk_rows) * (gsl_sf_log(lam1) - gsl_sf_log(lam0)) - b * (lam1 - lam0) - sum_term;
 
-    accept_ratio = gsl_sf_exp((a - 1 - dk_rows) * (gsl_sf_log(lam1) - gsl_sf_log(lam0)) - b * (lam1 - lam0) - (gamma + 1) * sum_term);
-    if (accept_ratio >= 1 || gsl_ran_flat(random, 0, 1) <= accept_ratio)
+    if(log_accept_ratio < -20)
+        return lam0;
+    else if(log_accept_ratio > 0)
         return lam1;
-    return lam0;
+
+    accept_ratio = gsl_sf_exp(log_accept_ratio);
+    if (gsl_ran_flat(random, 0, 1) <= accept_ratio)
+        return lam1;
+    return lam0;    
 }
 
 void sample_prior_aux_laplace(const gsl_rng *random, double *beta,
@@ -492,19 +712,59 @@ void sample_prior_aux_laplace(const gsl_rng *random, double *beta,
     }
 }
 
+void sample_prior_aux_laplace_multilambda(const gsl_rng *random, double *beta,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double *lambda, double *s)
+{
+    int i;
+
+    mat_dot_vec(dk_rows, dk_rowbreaks, dk_cols, deltak, beta, s);
+    vec_abs(dk_rows, s);
+
+    for(i = 0; i < dk_rows; i++){
+        s[i] = -gsl_sf_log(lex_ran_flat (random, 0.0, gsl_sf_exp(-lambda[i] * s[i]))) / lambda[i];
+    }
+}
+
 void sample_prior_aux_doublepareto(const gsl_rng *random, double *beta, 
                                    int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                    double lambda, double dp_hyperparameter, double *s)
 {
     int i;
     double z;
+    double dp_exponent;
 
+    dp_exponent = -(dp_hyperparameter+1);
     mat_dot_vec(dk_rows, dk_rowbreaks, dk_cols, deltak, beta, s);
     vec_abs(dk_rows, s);
 
     for(i = 0; i < dk_rows; i++){
+        /* Lambda as an inverse scale parameter */
+        z = pow(1. + lambda * s[i] / dp_hyperparameter, dp_exponent);
+        s[i] = dp_hyperparameter / lambda * (gsl_sf_exp(gsl_sf_log(lex_ran_flat(random, 0, z)) / dp_exponent) - 1);
+        
+        /* Lambda as a scale parameter
         z = pow(1. + s[i] / (dp_hyperparameter * lambda), -dp_hyperparameter - 1.);
         s[i] = dp_hyperparameter * lambda * (gsl_sf_exp(-gsl_sf_log(lex_ran_flat(random, 0, z)) / (dp_hyperparameter + 1.0)) - 1);
+        */
+    }
+}
+
+void sample_prior_aux_cauchy(const gsl_rng *random, double *beta, 
+                                   int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                   double lambda, double *s)
+{
+    int i;
+    double z;
+    double lamsq;
+
+    mat_dot_vec(dk_rows, dk_rowbreaks, dk_cols, deltak, beta, s);
+    vec_abs(dk_rows, s);
+
+    lamsq = lambda * lambda;
+    for(i = 0; i < dk_rows; i++){
+        z = lambda / (1.0 + (lamsq * s[i] * s[i]));
+        s[i] = sqrt(1.0 / (lambda * lex_ran_flat(random, 0, z)) - 1.0 / lamsq);
     }
 }
 

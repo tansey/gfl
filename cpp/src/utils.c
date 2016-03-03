@@ -338,11 +338,11 @@ void cs_dot_vec(cs *A, double *x, double *b){
     int i;
     int j;
 
-    for (i = 0; i < A->n; i++){ b[i] = 0; } /* zero-out the output vector */
+    for (i = 0; i < A->m; i++){ b[i] = 0; } /* zero-out the output vector */
 
     if (A->nz == -1){
-        for (i = 0; i < A->n; i++){
-            for (j = A->p[i]; j < A->p[i+1]; j++){
+        for (i = 0, j = 0; i < A->n; i++){
+            for (; j < A->p[i+1]; j++){
                 b[A->i[j]] += A->x[j] * x[i];
             }
         }
@@ -360,8 +360,8 @@ void vec_dot_cs(double *x, cs *A, double *b){
     for (i = 0; i < A->n; i++){ b[i] = 0; } /* zero-out the output vector */
 
     if (A->nz == -1){
-        for (i = 0; i < A->n; i++){
-            for (j = A->p[i]; j < A->p[i+1]; j++){
+        for (i = 0, j = 0; i < A->n; i++){
+            for (; j < A->p[i+1]; j++){
                 b[i] += A->x[j] * x[A->i[j]];
             }
         }

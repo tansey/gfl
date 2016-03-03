@@ -43,6 +43,21 @@ void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                       long iterations, long burn, long thin,
                                       double **beta_samples, double *lambda_samples);
 
+/* mixture-of-laplaces representation */
+void bayes_gfl_gaussian_doublepareto2 (int n, double *y, double *w,
+                                      int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                      double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                      double tau_hyperparameter,
+                                      long iterations, long burn, long thin,
+                                      double **beta_samples, double *lambda_samples);
+
+void bayes_gfl_gaussian_cauchy (int n, double *y, double *w,
+                                      int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                      double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                      double lam_walk_stdev, double lam0,
+                                      long iterations, long burn, long thin,
+                                      double **beta_samples, double *lambda_samples);
+
 void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
@@ -81,13 +96,30 @@ double sample_lambda_doublepareto(const gsl_rng *random, double *beta,
                                   double a, double b,
                                   double lam0, double gamma, double lam_walk_stdev);
 
+double sample_lambda_doublepareto2(const gsl_rng *random, double *beta, 
+                                   int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                   double a, double b, double gamma, double *tau);
+
+double sample_lambda_cauchy(const gsl_rng *random, double *beta,
+                                  int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                  double a, double b,
+                                  double lam0, double lam_walk_stdev);
+
 void sample_prior_aux_laplace(const gsl_rng *random, double *beta,
                                 int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                 double lambda, double *s);
 
+void sample_prior_aux_laplace_multilambda(const gsl_rng *random, double *beta,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double *lambda, double *s);
+
 void sample_prior_aux_doublepareto(const gsl_rng *random, double *beta, 
                                    int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                    double lambda, double dp_hyperparameter, double *s);
+
+void sample_prior_aux_cauchy(const gsl_rng *random, double *beta, 
+                                   int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                   double lambda, double *s);
 
 void sample_likelihood_gaussian(const gsl_rng *random,
                                 int n, double *y, double *w,

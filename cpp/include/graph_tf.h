@@ -25,7 +25,7 @@
 #include "utils.h"
 
 #define GTF_PN_STEP_SIZE_DECAY 0.99
-#define MAX_CG_STEPS 200
+#define MAX_CG_STEPS 50
 
 int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
                                        int dknrows, int dkncols, int dknnz,

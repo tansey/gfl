@@ -40,6 +40,23 @@ gflbayes_gaussian_doublepareto.argtypes = [c_int, ndpointer(c_double, flags='C_C
                 c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
+gflbayes_gaussian_doublepareto2 = gflbayes_lib.bayes_gfl_gaussian_doublepareto2
+gflbayes_gaussian_doublepareto2.restype = None
+gflbayes_gaussian_doublepareto2.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double, c_double,
+                c_long, c_long, c_long,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+gflbayes_gaussian_cauchy = gflbayes_lib.bayes_gfl_gaussian_cauchy
+gflbayes_gaussian_cauchy.restype = None
+gflbayes_gaussian_cauchy.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double, c_double,
+                c_double, c_double,
+                c_long, c_long, c_long,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
 gflbayes_binomial_laplace = gflbayes_lib.bayes_gfl_binomial_laplace
 gflbayes_binomial_laplace.restype = None
 gflbayes_binomial_laplace.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
@@ -83,7 +100,7 @@ def double_matrix_to_c_pointer(x):
 
 def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
                            lambda_hyperparams=None, lam_walk_stdev=0.01, lam0=1.,
-                           dp_hyperparameter=1.,
+                           dp_hyperparameter=None,
                            iterations=7000, burn=2000, thin=10,
                            verbose=False):
     '''Generate samples from the generalized graph trend filtering distribution via a modified Swendsen-Wang slice sampling algorithm.
@@ -103,9 +120,14 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
     if prior == 'laplace':
         if lambda_hyperparams == None:
             lambda_hyperparams = (0.5, np.sqrt(D.shape[0]))
-    elif prior == 'doublepareto':
+    elif prior == 'doublepareto' or prior == 'doublepareto2':
         if lambda_hyperparams == None:
-            lambda_hyperparams = (0.01, 0.01)
+            lambda_hyperparams = (1.0, 1.0)
+        if dp_hyperparameter == None:
+            dp_hyperparameter = 0.1
+    elif prior == 'cauchy':
+        if lambda_hyperparams == None:
+            lambda_hyperparams = (1.0, 1.0)
     else:
         raise Exception('Unknown prior type: {0}.'.format(prior))
 
@@ -126,6 +148,20 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
                                       dk_rows, dk_rowbreaks, dk_cols, dk_vals,
                                       lambda_hyperparams[0], lambda_hyperparams[1],
                                       lam_walk_stdev, lam0, dp_hyperparameter,
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
+        elif prior == 'doublepareto2':
+            gflbayes_gaussian_doublepareto2(len(y), y, w,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      dp_hyperparameter,
+                                      iterations, burn, thin,
+                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
+        elif prior == 'cauchy':
+            gflbayes_gaussian_cauchy(len(y), y, w,
+                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                      lambda_hyperparams[0], lambda_hyperparams[1],
+                                      lam_walk_stdev, lam0,
                                       iterations, burn, thin,
                                       double_matrix_to_c_pointer(beta_samples), lam_samples)
     elif likelihood == 'binomial':
@@ -245,12 +281,14 @@ def test_sample_gtf_binomial():
 
 def test_sample_gtf_gaussian():
     # Load the data and create the penalty matrix
-    k = 0
-    y = np.zeros(100)
-    y[:25] = 15.
-    y[25:50] = 20.
-    y[50:75] = 25.
-    y[75:] = 10.
+    k = 1
+    # y = np.zeros(100)
+    # y[:25] = 15.
+    # y[25:50] = 20.
+    # y[50:75] = 25.
+    # y[75:] = 10.
+    y = (np.sin(np.linspace(-np.pi, np.pi, 100)) + 1) * 5
+    y[25:75] += np.sin(np.linspace(1.5*-np.pi, np.pi*2, 50))*5 ** (np.abs(np.arange(50) / 25.))
     y += np.random.normal(0,1.0,size=len(y))
     mean_offset = y.mean()
     y -= mean_offset
@@ -267,7 +305,7 @@ def test_sample_gtf_gaussian():
     
     D = get_1d_penalty_matrix(len(y))
 
-    z_samples, lam_samples = sample_gtf((y, w), D, k, likelihood='gaussian', prior='laplace', verbose=True)
+    z_samples, lam_samples = sample_gtf((y, w), D, k, likelihood='gaussian', prior='doublepareto', verbose=True, iterations=100000, burn=1000, thin=2)
     y *= stdev_offset
     y += mean_offset
     z_samples *= stdev_offset

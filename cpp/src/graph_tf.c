@@ -92,7 +92,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
                 nfree++;
             }
         }
-        
+
         /* Count the number of elements in the reduced hessian */
         reduced_hessian->m = reduced_hessian->n = nfree;
         for (nfree = 0, i = 0; i < hessian->m; i++){
