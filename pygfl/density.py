@@ -21,6 +21,8 @@ from scipy.stats import binom
 from scipy.interpolate import interp1d
 from collections import deque
 from ctypes import *
+from bayes import sample_gtf
+from utils import matrix_from_edges, pretty_str
 
 class GraphFusedDensity:
     def __init__(self, dof_tolerance=1e-4, converge=1e-6, max_steps=100,
@@ -52,7 +54,7 @@ class GraphFusedDensity:
                                         ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                                         ndpointer(c_double, flags='C_CONTIGUOUS')]
 
-    def set_data(self, data, edges, ntrails, trails, breakpoints):
+    def set_data(self, data, edges, ntrails=None, trails=None, breakpoints=None):
         self.data = data
         self.edges = edges
         self.ntrails = ntrails
@@ -180,6 +182,29 @@ class GraphFusedDensity:
                 'aic_densities': self.density_from_betas(aic_best_betas),
                 'aicc_densities': self.density_from_betas(aicc_best_betas),
                 'bic_densities': self.density_from_betas(bic_best_betas)}
+
+    def bayes_estimate(self, k=0, prior='laplace', iterations=7000, burn=2000, thin=10):
+        D = matrix_from_edges(self.edges)
+        sample_size = (iterations - burn) / thin
+        beta_samples = np.array([np.zeros((sample_size, D.shape[1]), dtype='double') for _ in self.bins])
+        lam_samples = np.array([np.zeros(sample_size, dtype='double') for _ in self.bins])
+        for j, (left, mid, right, trials, successes) in enumerate(self.bins):
+            if self.verbose:
+                print 'Bin #{0}'.format(j)
+            if self.bins_allowed is not None and j not in self.bins_allowed:
+                results.append(None)
+                continue
+            beta, lam = sample_gtf((trials, successes), D, k, likelihood='binomial', prior=prior,
+                           iterations=iterations, burn=burn, thin=thin,
+                           verbose=self.verbose)
+            beta_samples[j] = beta
+            lam_samples[j] = lam
+        if self.verbose:
+            print 'Creating densities from betas...'
+
+        density = self.density_from_betas(beta_samples.mean(axis=1))
+
+        return {'betas': beta_samples, 'lambdas': lam_samples, 'density': density}
 
     def density_from_betas(self, betas):
         if self.interpolate:

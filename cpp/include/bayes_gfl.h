@@ -17,13 +17,14 @@
  *   License along with GFL. If not, see <http://www.gnu.org/licenses/>.    *
  ****************************************************************************/
 
-#ifndef GRAPH_FL_H
-#define GRAPH_FL_H
+#ifndef BAYES_GFL_H
+#define BAYES_GFL_H
 
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "polyagamma.h"
 #include "utils.h"
 
 
@@ -33,6 +34,13 @@
 void bayes_gfl_gaussian_laplace (int n, double *y, double *w,
                                 int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                 double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                long iterations, long burn, long thin,
+                                double **beta_samples, double *lambda_samples);
+
+void bayes_gfl_gaussian_laplace_gamma (int n, double *y, double *w,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                double tau_hyperparameter,
                                 long iterations, long burn, long thin,
                                 double **beta_samples, double *lambda_samples);
 
@@ -63,6 +71,13 @@ void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
                                  double lambda_hyperparam_a, double lambda_hyperparam_b,
                                  long iterations, long burn, long thin,
                                  double **beta_samples, double *lambda_samples);
+
+void bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                double tau_hyperparameter,
+                                long iterations, long burn, long thin,
+                                double **beta_samples, double *lambda_samples);
 
 void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
@@ -104,6 +119,11 @@ double sample_lambda_cauchy(const gsl_rng *random, double *beta,
                                   int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                   double a, double b,
                                   double lam0, double lam_walk_stdev);
+
+void sample_tau_laplace_gamma(const gsl_rng *random, double *beta,
+                              int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                              double lambda, double tau_hyperparameter, 
+                              double *tau);
 
 void sample_prior_aux_laplace(const gsl_rng *random, double *beta,
                                 int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,

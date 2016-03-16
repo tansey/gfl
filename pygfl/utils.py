@@ -328,6 +328,28 @@ def decompose_delta(deltak):
     dk_vals = deltak.data.astype('double')
     return dk_rows, dk_rowbreaks, dk_cols, dk_vals
 
-
+def matrix_from_edges(edges):
+    '''Returns a sparse penalty matrix (D) from a list of edge pairs'''
+    max_col = 0
+    cols = []
+    rows = []
+    vals = []
+    if type(edges) is defaultdict:
+        edge_list = []
+        for i, neighbors in edges.iteritems():
+            for j in neighbors:
+                if i <= j:
+                    edge_list.append((i,j))
+        edges = edge_list
+    for i, (s,t) in enumerate(edges):
+        cols.append(min(s,t))
+        cols.append(max(s,t))
+        rows.append(i)
+        rows.append(i)
+        vals.append(1)
+        vals.append(-1)
+        if cols[-1] > max_col:
+            max_col = cols[-1]
+    return coo_matrix((vals, (rows, cols)), shape=(rows[-1]+1, max_col+1))
 
 
