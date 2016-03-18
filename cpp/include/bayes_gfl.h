@@ -44,6 +44,14 @@ void bayes_gfl_gaussian_laplace_gamma (int n, double *y, double *w,
                                 long iterations, long burn, long thin,
                                 double **beta_samples, double *lambda_samples);
 
+void bayes_gfl_gaussian_laplace_gamma_robust (int n, double *y, double *w,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                double tau_hyperparameter,
+                                double w_hyperparameter_a, double w_hyperparameter_b,
+                                long iterations, long burn, long thin,
+                                double **beta_samples, double *lambda_samples);
+
 void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,

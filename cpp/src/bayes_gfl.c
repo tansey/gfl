@@ -159,6 +159,92 @@ void bayes_gfl_gaussian_laplace_gamma (int n, double *y, double *w,
     gsl_rng_free(random);
 }
 
+void bayes_gfl_gaussian_laplace_gamma_robust (int n, double *y, double *w,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double lambda_hyperparam_a, double lambda_hyperparam_b,
+                                double tau_hyperparameter,
+                                double w_hyperparameter_a, double w_hyperparameter_b,
+                                long iterations, long burn, long thin,
+                                double **beta_samples, double *lambda_samples)
+{
+    int i;
+    double *s;
+    double *beta;
+    double *tau;
+    int **coefs;
+    int *coef_breaks;
+    long iteration;
+    int sample_idx;
+    double ymean;
+    const gsl_rng_type *T;
+    gsl_rng *random;
+    double lambda;
+
+    gsl_rng_env_setup();
+    T = gsl_rng_default;
+    random = gsl_rng_alloc (T);
+
+    s = (double *) malloc(dk_rows * sizeof(double));
+    coefs = (int **) malloc(n * sizeof(int*));
+    coef_breaks = (int *) malloc(n * sizeof(int));
+    beta = (double *) malloc(n * sizeof(double));
+    tau = (double *) malloc(dk_rows * sizeof(double));
+
+    /* Cache a lookup table to map from deltak column to the set of rows with 
+       non-zero entries for that column */
+    calc_coefs(n, dk_rows, dk_rowbreaks, dk_cols, coefs, coef_breaks);
+
+    /* Set all beta values to the mean to start */
+    ymean = vec_mean(n, y);
+    for (i = 0; i < n; i++){ beta[i] = ymean; }
+
+    /* Set tau to 1 to start */
+    for (i = 0; i < dk_rows; i++){ tau[i] = 1.0; }
+
+    /* Run the Gibbs sampler */
+    for (iteration = 0, sample_idx = 0; iteration < iterations; iteration++)
+    {
+        /* Sample the lambda penalty weight on the Laplace prior */
+        lambda = gsl_ran_gamma(random, lambda_hyperparam_a + tau_hyperparameter * dk_rows, 1.0 / (lambda_hyperparam_b + vec_sum(dk_rows, tau)));
+
+        /* Sample the local laplace penalty tau */
+        sample_tau_laplace_gamma(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, lambda, tau_hyperparameter, tau);
+        
+        /* Sample each of the auxillary variables (one per row of Dk) */
+        sample_prior_aux_laplace_multilambda(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, tau, s);
+        
+        /* Sample from the truncated Gaussian likelihood */
+        sample_likelihood_gaussian(random, n, y, w, dk_rowbreaks, dk_cols, deltak, s, coefs, coef_breaks, beta);
+
+        /* Sample the weights */
+        w[0] = w_hyperparameter_a + n/2.0;
+        w[1] = w_hyperparameter_b;
+        for (i = 0; i < n; i++){
+            w[1] += 0.5 * (y[i] - beta[i]) * (y[i] - beta[i]);
+        }
+        w[0] = gsl_ran_gamma(random, w[0], 1.0 / w[1]);
+        for (i  = 1; i < n; i++){
+            w[i] = w[0];
+        }
+
+        /* Add the sample */
+        if (iteration >= burn && (iteration % thin) == 0){
+            lambda_samples[sample_idx] = lambda;
+            memcpy(beta_samples[sample_idx], beta, n * sizeof(double));
+            sample_idx++;
+        }
+    }
+
+    free(s);
+    free(tau);
+    free(beta);
+    for (i = 0; i < n; i++){ free(coefs[i]); }
+    free(coefs);
+    free(coef_breaks);
+
+    gsl_rng_free(random);
+}
+
 
 void bayes_gfl_gaussian_doublepareto (int n, double *y, double *w,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
@@ -270,21 +356,16 @@ void bayes_gfl_gaussian_doublepareto2 (int n, double *y, double *w,
 
     /* Set all tau values to the MAP to start */
     for (i = 0; i < dk_rows; i++){ tau[i] = tau_hyperparameter / (lambda_hyperparam_a / lambda_hyperparam_b); }
-    print_vector(dk_rows, tau);
-    printf("\n");
+    
     /* Run the Gibbs sampler */
     for (iteration = 0, sample_idx = 0; iteration < iterations; iteration++)
     {
-        printf("Iteration: %ld\n", iteration);
         /* Sample the lambda penalty weight on the double Pareto prior */
         lambda = sample_lambda_doublepareto2(random, beta,
                                             dk_rows, dk_rowbreaks, dk_cols, deltak,
                                             lambda_hyperparam_a, lambda_hyperparam_b,
                                             tau_hyperparameter, tau);
-        printf("Lambda: %f\n", lambda);
-        printf("tau: ");
-        print_vector(dk_rows, tau);
-        printf("\n");
+
         /* Sample each of the auxillary variables (one per row of Dk) */
         sample_prior_aux_laplace_multilambda(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, tau, s);
         
@@ -505,10 +586,6 @@ void bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
         /* Sample from the binomial likelihood */
         sample_likelihood_binomial(random, n, trials, successes, dk_rowbreaks, dk_cols, deltak, s, coefs, coef_breaks, beta);
         
-        /*printf("Iteration %d beta(%d):", iteration, n);
-        print_vector(n, beta);
-        printf("\n");*/
-
         /* Add the sample */
         if (iteration >= burn && (iteration % thin) == 0){
             lambda_samples[sample_idx] = lambda;
@@ -790,9 +867,7 @@ double sample_lambda_doublepareto(const gsl_rng *random, double *beta,
     double log_accept_ratio;
     int prev_break;
 
-    /*printf("lam0: %f", lam0);*/
     lam1 = gsl_sf_exp(gsl_ran_gaussian(random, lam_walk_stdev) + gsl_sf_log(lam0));
-    /*printf("\tlam1: %f\n",lam1);*/
 
     /* Lambda as an inverse scale parameter */
     sum_term = 0;
@@ -988,7 +1063,12 @@ void sample_likelihood_gaussian(const gsl_rng *random,
                 upper = MIN(upper, left);
             }
         }
-        beta[j] = rnorm_trunc(random, y[j], 1. / sqrt(w[j]), lower, upper);
+        if (fabs(lower - upper) < 1e-12) /* numerical precision ugh... */
+            beta[j] = gsl_rng_uniform(random) < 0.5 ? lower : upper;
+        else if (w[j] < 0)
+            beta[j] = lex_ran_flat(random, lower, upper);
+        else
+            beta[j] = rnorm_trunc(random, y[j], 1. / sqrt(w[j]), lower, upper);
     }
 
 }
@@ -1002,21 +1082,41 @@ void sample_likelihood_binomial(const gsl_rng *random,
     int i;
     double *w;
     double *y;
+    double mu;
+    double sigma;
     
     y = (double *) malloc(n * sizeof(double));
     w = (double *) malloc(n * sizeof(double));
 
     for(i = 0; i < n; i++)
     {
-        /* Sample the latent variable w_j from PG(n_i, Beta_i) */
-        w[i] = polyagamma_draw(trials[i], beta[i], random);
-        y[i] = (successes[i] - trials[i] / 2.0) / w[i];
+        if (trials[i] == 0){
+            w[i] = -1;
+            y[i] = -1;
+        }
+        else
+        {
+            if (trials[i] <= 170)
+            {
+                /* Sample the latent variable w_j from PG(n_i, Beta_i) */
+                w[i] = polyagamma_draw(trials[i], beta[i], random);
+            } else {
+                /* Use a normal approximation since n is so large */
+                mu = trials[i]/(2.0*beta[i]) * tanh(beta[i]/2.0);
+                sigma = sqrt(trials[i]/(4.0*pow(beta[i],3)) * (sinh(beta[i]) - beta[i]) / pow(cosh(beta[i]/2.0), 2));
+                w[i] = gsl_ran_gaussian(random, sigma) + mu;
+            }
+            y[i] = (successes[i] - trials[i] / 2.0) / w[i];
+        }
+        
     }
     sample_likelihood_gaussian(random,
                                 n, y, w,
                                 dk_rowbreaks, dk_cols, dk_vals,
                                 s, coefs, coef_breaks,
                                 beta);
+    free(y);
+    free(w);
 }
 
 void sample_likelihood_poisson(const gsl_rng *random,

@@ -192,17 +192,21 @@ class GraphFusedDensity:
             if self.verbose:
                 print 'Bin #{0}'.format(j)
             if self.bins_allowed is not None and j not in self.bins_allowed:
-                results.append(None)
                 continue
+            np.savetxt('trials_bin{0}.csv'.format(j), trials, delimiter=',', fmt='%d')
+            np.savetxt('successes_bin{0}.csv'.format(j), successes, delimiter=',', fmt='%d')
             beta, lam = sample_gtf((trials, successes), D, k, likelihood='binomial', prior=prior,
                            iterations=iterations, burn=burn, thin=thin,
                            verbose=self.verbose)
             beta_samples[j] = beta
             lam_samples[j] = lam
+            np.savetxt('bayes_laplacegamma_bin{0}.csv'.format(j), beta, delimiter=',')
         if self.verbose:
             print 'Creating densities from betas...'
 
-        density = self.density_from_betas(beta_samples.mean(axis=1))
+        means = beta_samples.mean(axis=1)
+        np.savetxt('bayes_laplacegamma_means.csv', means, delimiter=',')
+        density = self.density_from_betas(means)
 
         return {'betas': beta_samples, 'lambdas': lam_samples, 'density': density}
 
