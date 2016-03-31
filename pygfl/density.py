@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 from collections import deque
 from ctypes import *
 from bayes import sample_gtf
-from utils import matrix_from_edges, pretty_str
+from utils import matrix_from_edges, pretty_str, get_delta
 
 class GraphFusedDensity:
     def __init__(self, dof_tolerance=1e-4, converge=1e-6, max_steps=100,
@@ -60,6 +60,10 @@ class GraphFusedDensity:
         self.ntrails = ntrails
         self.trails = trails
         self.breakpoints = breakpoints
+        self.map_density = None
+        self.bayes_density = None
+        self.map_betas = None
+        self.bayes_betas = None
 
         # Create the Polya tree
         self.bins = []
@@ -92,7 +96,7 @@ class GraphFusedDensity:
             # Recurse right
             self.polya_tree_descend(mid, right, level+1)
 
-    def solution_path(self, initial_values=None):
+    def solution_path(self):
         '''Follows the solution path of the generalized lasso to find the best lambda value.'''
         lambda_grid = np.exp(np.linspace(np.log(self.max_lambda), np.log(self.min_lambda), self.lambda_bins))
         aic_trace = np.zeros((len(self.bins),lambda_grid.shape[0])) # The AIC score for each lambda value
@@ -167,6 +171,9 @@ class GraphFusedDensity:
         if self.verbose:
             print 'Creating densities from betas...'
 
+        self.map_density = self.density_from_betas(bic_best_betas)
+        self.map_betas = bic_best_betas
+
         return {'aic': aic_trace,
                 'aicc': aicc_trace,
                 'bic': bic_trace,
@@ -181,10 +188,21 @@ class GraphFusedDensity:
                 'bic_best_idx': bic_best_idx,
                 'aic_densities': self.density_from_betas(aic_best_betas),
                 'aicc_densities': self.density_from_betas(aicc_best_betas),
-                'bic_densities': self.density_from_betas(bic_best_betas)}
+                'bic_densities': self.map_density}
 
-    def bayes_estimate(self, k=0, prior='laplace', iterations=7000, burn=2000, thin=10):
+    def estimate_change_points(self, D, k):
+        if self.map_density is None:
+            self.solution_path()
+        delta = get_delta(D, k)
+        return np.array([(np.array(delta.dot(betas)) > 0.04).sum() for betas in self.map_betas])
+
+    def bayes_estimate(self, k=0, prior='laplacegamma', lam0=None, iterations=1000, burn=100, thin=2):
         D = matrix_from_edges(self.edges)
+
+        if lam0 is None:
+            change_points = self.estimate_change_points(D, k)
+            lam0 = ((change_points+1.0) / float(D.shape[0]))**(float(D.shape[1])/float(D.shape[0]))
+        
         sample_size = (iterations - burn) / thin
         beta_samples = np.array([np.zeros((sample_size, D.shape[1]), dtype='double') for _ in self.bins])
         lam_samples = np.array([np.zeros(sample_size, dtype='double') for _ in self.bins])
@@ -193,20 +211,20 @@ class GraphFusedDensity:
                 print 'Bin #{0}'.format(j)
             if self.bins_allowed is not None and j not in self.bins_allowed:
                 continue
-            np.savetxt('trials_bin{0}.csv'.format(j), trials, delimiter=',', fmt='%d')
-            np.savetxt('successes_bin{0}.csv'.format(j), successes, delimiter=',', fmt='%d')
             beta, lam = sample_gtf((trials, successes), D, k, likelihood='binomial', prior=prior,
-                           iterations=iterations, burn=burn, thin=thin,
-                           verbose=self.verbose)
-            beta_samples[j] = beta
+                                   empirical=True, lam0=lam0[j],
+                                   iterations=iterations, burn=burn, thin=thin,
+                                   verbose=self.verbose)
+            beta_samples[j] = -np.log(1./beta - 1.) # convert back to natural parameter form
             lam_samples[j] = lam
-            np.savetxt('bayes_laplacegamma_bin{0}.csv'.format(j), beta, delimiter=',')
         if self.verbose:
             print 'Creating densities from betas...'
 
         means = beta_samples.mean(axis=1)
-        np.savetxt('bayes_laplacegamma_means.csv', means, delimiter=',')
         density = self.density_from_betas(means)
+
+        self.bayes_betas = means
+        self.bayes_density = density
 
         return {'betas': beta_samples, 'lambdas': lam_samples, 'density': density}
 

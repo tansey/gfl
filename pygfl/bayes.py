@@ -93,6 +93,14 @@ gflbayes_binomial_laplace_gamma.argtypes = [c_int, ndpointer(c_int, flags='C_CON
                 c_long, c_long, c_long,
                 ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
+gflbayes_empirical_binomial_laplace_gamma = gflbayes_lib.empirical_bayes_gfl_binomial_laplace_gamma
+gflbayes_empirical_binomial_laplace_gamma.restype = None
+gflbayes_empirical_binomial_laplace_gamma.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                c_double,
+                c_long, c_long, c_long,
+                ndpointer(dtype=np.uintp, ndim=1, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
 
 gflbayes_binomial_doublepareto = gflbayes_lib.bayes_gfl_binomial_doublepareto
 gflbayes_binomial_doublepareto.restype = None
@@ -130,7 +138,8 @@ def double_matrix_to_c_pointer(x):
 def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
                            lambda_hyperparams=None, lam_walk_stdev=0.01, lam0=1.,
                            dp_hyperparameter=None, w_hyperparameters=None,
-                           iterations=7000, burn=2000, thin=10, robust=False,
+                           iterations=7000, burn=2000, thin=10,
+                           robust=False, empirical=False,
                            verbose=False):
     '''Generate samples from the generalized graph trend filtering distribution via a modified Swendsen-Wang slice sampling algorithm.
     Options for likelihood: gaussian, binomial, poisson. Options for prior: laplace, doublepareto.'''
@@ -232,12 +241,19 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
                                       iterations, burn, thin,
                                       double_matrix_to_c_pointer(beta_samples), lam_samples)
         elif prior == 'laplacegamma':
-            gflbayes_binomial_laplace_gamma(len(trials), trials, successes,
-                                      dk_rows, dk_rowbreaks, dk_cols, dk_vals,
-                                      lambda_hyperparams[0], lambda_hyperparams[1],
-                                      dp_hyperparameter,
-                                      iterations, burn, thin,
-                                      double_matrix_to_c_pointer(beta_samples), lam_samples)
+            if empirical:
+                gflbayes_empirical_binomial_laplace_gamma(len(trials), trials, successes,
+                                          dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                          lam0,
+                                          iterations, burn, thin,
+                                          double_matrix_to_c_pointer(beta_samples), lam_samples)
+            else:
+                gflbayes_binomial_laplace_gamma(len(trials), trials, successes,
+                                          dk_rows, dk_rowbreaks, dk_cols, dk_vals,
+                                          lambda_hyperparams[0], lambda_hyperparams[1],
+                                          dp_hyperparameter,
+                                          iterations, burn, thin,
+                                          double_matrix_to_c_pointer(beta_samples), lam_samples)
     elif likelihood == 'poisson':
         if prior == 'laplace':
             gflbayes_poisson_laplace(len(obs), obs,
@@ -286,7 +302,7 @@ def test_sample_gtf_poisson():
     ax[1].set_ylabel('Mean values')
     ax[2].hist(lam_samples, 50)
     ax[2].set_xlabel('Lambda values')
-    ax[2].set_ylabel('Samples')
+    ax[2].set_ylabel('Lambda')
     ax[3].scatter(x, probs, alpha=0.5)
     ax[3].plot(x, z, lw=2, color='orange')
     ax[3].fill_between(x, z_lower, z_upper, alpha=0.3, color='orange')
@@ -307,7 +323,7 @@ def test_sample_gtf_binomial():
     D = get_1d_penalty_matrix(len(successes))
     k = 0
 
-    z_samples, lam_samples = sample_gtf((trials, successes), D, k, likelihood='binomial', prior='laplace', verbose=True)
+    z_samples, lam_samples = sample_gtf((trials, successes), D, k, likelihood='binomial', prior='laplacegamma', verbose=True)
     z = z_samples.mean(axis=0)
     z_stdev = z_samples.std(axis=0)
     z_lower = z - z_stdev*2
@@ -329,7 +345,7 @@ def test_sample_gtf_binomial():
     ax[1].set_ylabel('Mean values')
     ax[2].hist(lam_samples, 50)
     ax[2].set_xlabel('Lambda values')
-    ax[2].set_ylabel('Samples')
+    ax[2].set_ylabel('Lambda')
     ax[3].scatter(x, probs, alpha=0.5)
     ax[3].plot(x, z, lw=2, color='orange')
     ax[3].fill_between(x, z_lower, z_upper, alpha=0.3, color='orange')
@@ -391,7 +407,7 @@ def test_sample_gtf_gaussian():
 
     n, bins, patches = ax[1].hist(lam_samples, 50)
     ax[1].set_xlabel('Lambda values')
-    ax[1].set_ylabel('Samples')
+    ax[1].set_ylabel('Lambda')
 
     ax[2].scatter(x, y, alpha=0.5)
     ax[2].plot(x, z, lw=2, color='orange')

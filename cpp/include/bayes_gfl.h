@@ -87,6 +87,12 @@ void bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
                                 long iterations, long burn, long thin,
                                 double **beta_samples, double *lambda_samples);
 
+void empirical_bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
+                                int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
+                                double lambda,
+                                long iterations, long burn, long thin,
+                                double **beta_samples, double *lambda_samples);
+
 void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
                                       int dk_rows, int *dk_rowbreaks, int *dk_cols, double *deltak,
                                       double lambda_hyperparam_a, double lambda_hyperparam_b,

@@ -42,7 +42,7 @@ def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
             nodes -= set(plateau)
             plateaus.append(set(plateau))
     for p,v in zip(plateaus, plateau_vals):
-        data[p] = v
+        data[np.array(list(p), dtype=int)] = v
     return plateaus
 
 def load_trails(filename):
@@ -204,28 +204,50 @@ def nearly_unique(arr, rel_tol=1e-4, verbose=0):
             results = np.append(results, x)
     return results
 
+def line_graph_edges(length):
+    edges = defaultdict(list)
+    for i in xrange(length-1):
+        edges[i].append(i+1)
+        edges[i+1].append(i)
+    return edges
+
 def grid_graph_edges(rows, cols):
-    edges = []
+    edges = defaultdict(list)
     for x in xrange(cols):
         for y in xrange(rows):
             if x < cols-1:
-                edges.append((y*cols+x,y*cols+x+1))
+                i = int(y*cols+x)
+                j = int(y*cols+x+1)
+                edges[i].append(j)
+                edges[j].append(i)
             if y < rows-1:
-                edges.append((y*cols+x,(y+1)*cols+x))
+                i = int(y*cols+x)
+                j = int((y+1)*cols+x)
+                edges[i].append(j)
+                edges[j].append(i)
     return edges
 
 def cube_graph_edges(rows, cols, aisles):
-    edges = []
+    edges = defaultdict(list)
     for x in xrange(cols):
         for y in xrange(rows):
             for z in xrange(aisles):
                 node = x * cols * aisles + y * aisles + z
                 if x < cols-1:
-                    edges.append((node, (x+1) * cols * aisles + y * aisles + z))
+                    i = node
+                    j = (x+1) * cols * aisles + y * aisles + z
+                    edges[i].append(j)
+                    edges[j].append(i)
                 if y < rows-1:
-                    edges.append((node, x * cols * aisles + (y+1) * aisles + z))
+                    i = node
+                    j = x * cols * aisles + (y+1) * aisles + z
+                    edges[i].append(j)
+                    edges[j].append(i)
                 if z < aisles-1:
-                    edges.append((node, x * cols * aisles + y * aisles + z+1))
+                    i = node
+                    j = x * cols * aisles + y * aisles + z+1
+                    edges[i].append(j)
+                    edges[j].append(i)
     return edges
 
 def row_col_trails(rows, cols):
@@ -351,5 +373,10 @@ def matrix_from_edges(edges):
         if cols[-1] > max_col:
             max_col = cols[-1]
     return coo_matrix((vals, (rows, cols)), shape=(rows[-1]+1, max_col+1))
+
+def ks_distance(a, b):
+    '''Get the Kolmogorov-Smirnov (KS) distance between two densities a and b.'''
+    return np.max(np.abs(a.cumsum() - b.cumsum()))
+
 
 
