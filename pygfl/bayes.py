@@ -157,7 +157,7 @@ def sample_gtf(data, D, k, likelihood='gaussian', prior='laplace',
 
     if prior == 'laplace':
         if lambda_hyperparams == None:
-            lambda_hyperparams = (0.5, np.sqrt(D.shape[0]))
+            lambda_hyperparams = (1., 1.)
     elif prior == 'laplacegamma':
         if lambda_hyperparams == None:
             lambda_hyperparams = (1., 1.)

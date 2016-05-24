@@ -27,6 +27,15 @@
 #include "polyagamma.h"
 #include "utils.h"
 
+#ifndef BINOMIAL_BETA_MIN
+#define BINOMIAL_BETA_MIN -90
+#endif
+#ifndef BINOMIAL_BETA_MAX
+#define BINOMIAL_BETA_MAX 90
+#endif
+#ifndef CLAMP
+#define CLAMP(a,low,upper) MAX(low,MIN(upper,a))
+#endif
 
 /************************
  *     Main methods     *

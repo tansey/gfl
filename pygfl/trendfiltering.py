@@ -54,14 +54,17 @@ class TrendFilteringSolver:
         self.maxsteps = maxsteps
         self.converge = converge
 
-    def set_data(self, y, D, k, weights=None):
+    def set_data(self, D, k, y, weights=None):
         self.y = y
+        self.weights = weights if weights is not None else np.ones(len(self.y), dtype='double')
+        self.initialize(D, k)
+
+    def initialize(self, D, k):
         self.nnodes = len(y)
         self.D = D
         self.k = k
         self.Dk = get_delta(D, k).tocoo()
         self.Dk_minus_one = get_delta(self.D, self.k-1) if self.k > 0 else None
-        self.weights = weights if weights is not None else np.ones(len(self.y), dtype='double')
         self.beta = np.zeros(self.nnodes, dtype='double')
         self.steps = []
         self.u = np.zeros(self.Dk.shape[0], dtype='double')
@@ -153,27 +156,18 @@ class TrendFilteringSolver:
                 'best': beta_trace[best_idx],
                 'plateaus': best_plateaus}
 
-class LogitTrendFilteringSolver:
+class LogitTrendFilteringSolver(TrendFilteringSolver):
     def __init__(self, maxsteps=3000, converge=1e-6):
         self.maxsteps = maxsteps
         self.converge = converge
 
-    def set_data(self, trials, successes, D):
+    def set_data(self, D, k, trials, successes):
         self.trials = trials
         self.successes = successes
-        self.nnodes = len(trials)
-        self.D = D
-        self.beta = np.zeros(self.nnodes, dtype='double')
-        self.steps = []
-        self.Dk = None
-        self.u = None
+        self.initialize(D, k)
 
-    def solve(self, k, lam):
+    def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''
-        if self.Dk is None:
-            self.Dk = get_delta(self.D, k).tocoo()
-        if self.u is None:
-            self.u = np.zeros(self.Dk.shape[0], dtype='double')
         s = weighted_graphtf_logit(self.nnodes, self.trials, self.successes, lam,
                                  self.Dk.shape[0], self.Dk.shape[1], self.Dk.nnz,
                                  self.Dk.row.astype('int32'), self.Dk.col.astype('int32'), self.Dk.data.astype('double'),
@@ -182,26 +176,17 @@ class LogitTrendFilteringSolver:
         self.steps.append(s)
         return self.beta
 
-class PoissonTrendFilteringSolver:
+class PoissonTrendFilteringSolver(TrendFilteringSolver):
     def __init__(self, maxsteps=3000, converge=1e-6):
         self.maxsteps = maxsteps
         self.converge = converge
 
-    def set_data(self, obs, D):
+    def set_data(self, D, k, obs):
         self.obs = obs
-        self.nnodes = len(obs)
-        self.D = D
-        self.beta = np.zeros(self.nnodes, dtype='double')
-        self.steps = []
-        self.Dk = None
-        self.u = None
+        self.initialize(D, k)
 
-    def solve(self, k, lam):
+    def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''
-        if self.Dk is None:
-            self.Dk = get_delta(self.D, k).tocoo()
-        if self.u is None:
-            self.u = np.zeros(self.Dk.shape[0], dtype='double')
         s = weighted_graphtf_poisson(self.nnodes, self.obs, lam,
                                  self.Dk.shape[0], self.Dk.shape[1], self.Dk.nnz,
                                  self.Dk.row.astype('int32'), self.Dk.col.astype('int32'), self.Dk.data.astype('double'),

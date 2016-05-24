@@ -22,8 +22,10 @@ import csv
 import datetime
 from collections import defaultdict, deque
 from scipy.sparse import issparse, isspmatrix_coo, coo_matrix
+from scipy.sparse.linalg import lsqr
 
 def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
+    '''Creates plateaus of constant value in the data.'''
     nodes = set(edges.keys())
     if plateaus is None:
         plateaus = []
@@ -43,6 +45,21 @@ def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
             plateaus.append(set(plateau))
     for p,v in zip(plateaus, plateau_vals):
         data[np.array(list(p), dtype=int)] = v
+    return plateaus
+
+def create_tf_plateaus(k, data, edges, plateau_size, plateau_vals, plateaus=None):
+    if k == 0:
+        return create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=plateaus)
+    D = matrix_from_edges(edges)
+    Dkminus1 = get_delta(D, k-1)
+    if k % 2 == 0:
+        plateaus = create_plateaus(data, edges, plateau_size, plateau_vals)
+        data[:] = lsqr(Dkminus1, data)[0]
+    else:
+        # TODO: not a very principled way of creating odd-k plateaus, but it looks pretty
+        p = np.zeros(Dkminus1.shape[0])
+        plateaus = create_plateaus(p, edges, plateau_size, plateau_vals)
+        data[:] = lsqr(Dkminus1, p)[0]
     return plateaus
 
 def load_trails(filename):
@@ -376,7 +393,13 @@ def matrix_from_edges(edges):
 
 def ks_distance(a, b):
     '''Get the Kolmogorov-Smirnov (KS) distance between two densities a and b.'''
-    return np.max(np.abs(a.cumsum() - b.cumsum()))
+    if len(a.shape) == 1:
+        return np.max(np.abs(a.cumsum() - b.cumsum()))
+    return np.max(np.abs(a.cumsum(axis=1) - b.cumsum(axis=1)), axis=1)
 
-
+def tv_distance(a, b):
+    '''Get the Total Variation (TV) distance between two densities a and b.'''
+    if len(a.shape) == 1:
+        return np.sum(np.abs(a - b))
+    return np.sum(np.abs(a - b), axis=1)
 

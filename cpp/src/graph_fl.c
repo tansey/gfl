@@ -92,9 +92,6 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
     double *z_wbuff;
     double *z_ptr;
     double *tf_dp_buf;
-    double starting_alpha;
-
-    starting_alpha = alpha;
 
     nz = breakpoints[ntrails-1];
     z_ptr = z;
@@ -265,7 +262,6 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
     double presnorm;
     double dresnorm;
     double p;
-    double starting_alpha;
     double *zold;
     double *ztemp;
     double *w;
@@ -281,7 +277,6 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
 
     nz = breakpoints[ntrails-1];
     z_ptr = z;
-    starting_alpha = alpha;
 
     /*z               = (double *) malloc(nz * sizeof(double));*/
     zold            = (double *) malloc(nz * sizeof(double)); /* Use a double buffering strategy for z */

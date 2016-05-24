@@ -44,6 +44,19 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
     cs *reduced_hessian;
     cs *temp;
 
+    /* Trivial check to see if we have all zero y values (numerical stability issue) */
+    j = 0;
+    for (i = 0; i < n; i++){
+        if (y[i] != 0.0){
+            j = 1;
+            break;
+        }
+    }
+    if (!j){
+        for (i = 0; i < n; i++){ beta[i] = 0.0; }
+        return 0;
+    }
+
     gradient                    = (double *) malloc(dknrows * sizeof(double));
     reduced_gradient            = (double *) malloc(dknrows * sizeof(double));
     reduced_direction           = (double *) malloc(dknrows * sizeof(double));
@@ -79,6 +92,7 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
     /* Perform the Projected Newton iterations until convergence */
     while(step < maxsteps && cur_converge > rel_tol)
     {
+        /*printf("\t%d: %f\n", step, cur_converge);*/
         /* Calculate the complete gradient */
         cs_dot_vec(hessian, u, gradient);
         vec_minus_vec(dknrows, gradient, dky, gradient);
@@ -116,6 +130,14 @@ int graph_trend_filtering_weight_warm (int n, double *y, double *w, double lam,
         for (i = 0; i < dknrows; i++){
             if (!boundary[i]){
                 u[i] = MIN(lam, MAX(-lam, u[i] - step_size * reduced_direction[reduced_cols[i]]));
+                /*u[i] = u[i] - step_size * reduced_direction[reduced_cols[i]];
+                if (u[i] < -lam){
+                    reduced_direction[reduced_cols[i]] = (u[i] + lam) / step_size;
+                    u[i] = -lam;
+                } else if (u[i] > lam){
+                    reduced_direction[reduced_cols[i]] = (u[i] - lam) / step_size;
+                    u[i] = lam;
+                }*/
             }
         }
 
@@ -178,12 +200,26 @@ int graph_trend_filtering_logit_warm (int n, int *trials, int *successes, double
     step = 0;
     cur_converge = rel_tol + 1;
 
+    /* Trivial check to see if we have no trials */
+    p = 0;
+    for (i = 0; i < n; i++){
+        if (trials[i] > 0){
+            p = 1;
+            break;
+        }
+    }
+    if (!p){
+        for (i = 0; i < n; i++){ beta[i] = 0.0; }
+        step = maxsteps;
+    }
+
     while(step < maxsteps && cur_converge > rel_tol)
     {
+        printf("%d: %f\n", step, cur_converge);
         /* Perform a second-order Taylor expansion */
         for (i = 0; i < n; i++)
         {
-            p = 1.0 / (1.0 + gsl_sf_exp(-beta[i]));
+            p = 1.0 / (1.0 + gsl_sf_exp(-MIN(90, MAX(-90,beta[i]))));
             w[i] = trials[i] * p * (1.0 - p) + 1e-12;
             y[i] = beta[i] - (trials[i] * p - successes[i]) / w[i];
         }
@@ -207,15 +243,13 @@ int graph_trend_filtering_logit_warm (int n, int *trials, int *successes, double
         /* Track the change in beta to determine stopping criteria */
         vec_minus_vec(n, beta, prev_beta, w);
         cur_converge = vec_norm(n, w);
-
         step++;
     }
-
     free(y);
     free(w);
     if(b2 == beta) { memcpy(b1, b2, n * sizeof(double)); beta = b1; } /* swap the buffers back if necessary */
     free(b2);
-    for(i = 0; i < n; i++){ beta[i] = 1.0 / (1.0 + gsl_sf_exp(-beta[i])); }
+    for(i = 0; i < n; i++){ beta[i] = 1.0 / (1.0 + gsl_sf_exp(-MIN(90, MAX(-90,beta[i])))); }
     return step;
 }
 

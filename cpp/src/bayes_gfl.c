@@ -207,8 +207,6 @@ void bayes_gfl_gaussian_laplace_gamma_robust (int n, double *y, double *w,
         /* Sample the lambda penalty weight on the Laplace prior */
         lambda = gsl_ran_gamma(random, lambda_hyperparam_a + tau_hyperparameter * dk_rows, 1.0 / (lambda_hyperparam_b + vec_sum(dk_rows, tau)));
 
-        lambda = n / (double)dk_rows;
-
         /* Sample the local laplace penalty tau */
         sample_tau_laplace_gamma(random, beta, dk_rows, dk_rowbreaks, dk_cols, deltak, lambda, tau_hyperparameter, tau);
         
@@ -491,13 +489,13 @@ void bayes_gfl_binomial_laplace (int n, int *trials, int *successes,
     /* Cache a lookup table to map from deltak column to the set of rows with 
        non-zero entries for that column */
     calc_coefs(n, dk_rows, dk_rowbreaks, dk_cols, coefs, coef_breaks);
-
+    
     /* Set all beta values to the mean to start */
     ymean = 0;
     for (i = 0; i < n; i++){ if (successes[i] > 0) {ymean += trials[i] / (double)successes[i];} }
-    ymean = -gsl_sf_log(ymean / (double)n);
+    ymean = ymean > 0 ? -gsl_sf_log(ymean / (double)n) : 0;
     for (i = 0; i < n; i++){ beta[i] = ymean; }
-
+    
     /* Run the Gibbs sampler */
     for (iteration = 0, sample_idx = 0; iteration < iterations; iteration++)
     {
@@ -567,7 +565,7 @@ void bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
     /* Set all beta values to the mean to start */
     ymean = 0;
     for (i = 0; i < n; i++){ if (successes[i] > 0) {ymean += trials[i] / (double)successes[i];} }
-    ymean = -gsl_sf_log(ymean / (double)n);
+    ymean = ymean > 0 ? -gsl_sf_log(ymean / (double)n) : 0;
     for (i = 0; i < n; i++){ beta[i] = ymean; }
 
     /* Set tau to 1 to start */
@@ -591,7 +589,7 @@ void bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *successes,
         /* Add the sample */
         if (iteration >= burn && (iteration % thin) == 0){
             lambda_samples[sample_idx] = lambda;
-            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = beta[i] < -200 ? 0 : 1.0 / (1.0 + gsl_sf_exp(-beta[i])); }
+            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = 1.0 / (1.0 + gsl_sf_exp(-CLAMP(beta[i], BINOMIAL_BETA_MIN, BINOMIAL_BETA_MAX))); }
             sample_idx++;
         }
     }
@@ -641,7 +639,7 @@ void empirical_bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *succes
     /* Set all beta values to the mean to start */
     ymean = 0;
     for (i = 0; i < n; i++){ if (successes[i] > 0) {ymean += trials[i] / (double)successes[i];} }
-    ymean = -gsl_sf_log(ymean / (double)n);
+    ymean = ymean > 0 ? -gsl_sf_log(ymean / (double)n) : 0;
     for (i = 0; i < n; i++){ beta[i] = ymean; }
 
     /* Set tau to 1 to start */
@@ -662,7 +660,7 @@ void empirical_bayes_gfl_binomial_laplace_gamma (int n, int *trials, int *succes
         /* Add the sample */
         if (iteration >= burn && (iteration % thin) == 0){
             lambda_samples[sample_idx] = lambda;
-            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = beta[i] < -200 ? 0 : 1.0 / (1.0 + gsl_sf_exp(-beta[i])); }
+            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = 1.0 / (1.0 + gsl_sf_exp(-CLAMP(beta[i], BINOMIAL_BETA_MIN, BINOMIAL_BETA_MAX))); }
             sample_idx++;
         }
     }
@@ -713,7 +711,7 @@ void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
     /* Set all beta values to the mean to start */
     ymean = 0;
     for (i = 0; i < n; i++){ if (successes[i] > 0) {ymean += trials[i] / (double)successes[i];} }
-    ymean = -gsl_sf_log(ymean / (double)n);
+    ymean = ymean > 0 ? -gsl_sf_log(ymean / (double)n) : 0;
     for (i = 0; i < n; i++){ beta[i] = ymean; }
 
     /* Run the Gibbs sampler */
@@ -734,7 +732,7 @@ void bayes_gfl_binomial_doublepareto (int n, int *trials, int *successes,
         /* Add the sample */
         if (iteration >= burn && (iteration % thin) == 0){
             lambda_samples[sample_idx] = lambda;
-            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = beta[i] < -200 ? 0 : 1.0 / (1.0 + gsl_sf_exp(-beta[i])); }
+            for(i = 0; i < n; i++){ beta_samples[sample_idx][i] = 1.0 / (1.0 + gsl_sf_exp(-CLAMP(beta[i], BINOMIAL_BETA_MIN, BINOMIAL_BETA_MAX))); }
             sample_idx++;
         }
     }

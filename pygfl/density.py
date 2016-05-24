@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 from collections import deque
 from ctypes import *
 from bayes import sample_gtf
-from utils import matrix_from_edges, pretty_str, get_delta
+from utils import *
 
 class GraphFusedDensity:
     def __init__(self, dof_tolerance=1e-4, converge=1e-6, max_steps=100,
@@ -53,10 +53,19 @@ class GraphFusedDensity:
                                         c_int, c_double,
                                         ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                                         ndpointer(c_double, flags='C_CONTIGUOUS')]
+        self.graphtf = self.graphfl_lib.graph_trend_filtering_logit_warm
+        self.graphtf.restype = c_int
+        self.graphtf.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), c_double,
+                                        c_int, c_int, c_int,
+                                        ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                                        c_int, c_double,
+                                        ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
-    def set_data(self, data, edges, ntrails=None, trails=None, breakpoints=None):
+
+    def set_data(self, data, edges, k=0, ntrails=None, trails=None, breakpoints=None):
         self.data = data
         self.edges = edges
+        self.k = k
         self.ntrails = ntrails
         self.trails = trails
         self.breakpoints = breakpoints
@@ -64,6 +73,10 @@ class GraphFusedDensity:
         self.bayes_density = None
         self.map_betas = None
         self.bayes_betas = None
+
+        self.D = matrix_from_edges(self.edges)
+        self.Dk = get_delta(self.D, self.k).tocoo()
+        self.Dk_minus_one = get_delta(self.D, self.k-1) if self.k > 0 else None
 
         # Create the Polya tree
         self.bins = []
@@ -110,24 +123,36 @@ class GraphFusedDensity:
         bic_best_betas = [None for _ in self.bins]
         aic_best_betas = [None for _ in self.bins]
         aicc_best_betas = [None for _ in self.bins]
-        betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
-        zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
-        us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+        if self.k == 0 and self.trails is not None:
+            betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+            zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+            us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+        else:
+            betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+            us = [np.zeros(self.Dk.shape[0], dtype='double') for _ in self.bins]
         for i, _lambda in enumerate(lambda_grid):
             if self.verbose:
                 print '\n#{0} Lambda = {1}'.format(i, _lambda)
 
             # Run the graph fused lasso over each bin with the current lambda value
-            self.run(_lambda, initial_values=(betas, zs, us))
+            initial_values = (betas, zs, us) if self.k == 0 and self.trails is not None else (betas, us)
+            self.run(_lambda, initial_values=initial_values)
 
             if self.verbose > 1:
                 print '\tCalculating degrees of freedom and information criteria'
 
             for b, beta in enumerate(betas):
+                if self.bins_allowed is not None and b not in self.bins_allowed:
+                    continue
+
                 # Count the number of free parameters in the grid (dof)
                 # TODO: this is not really the true DoF, since a change in a higher node multiplies
                 # the DoF in the lower nodes
-                dof_trace[b,i] = len(self.calc_plateaus(beta))
+                # dof_trace[b,i] = len(self.calc_plateaus(beta))
+                dof_vals = self.Dk_minus_one.dot(beta) if self.k > 0 else beta
+                plateaus = calc_plateaus(dof_vals, self.edges, rel_tol=0.01) if (self.k % 2) == 0 else nearly_unique(dof_vals, rel_tol=0.03)
+                #plateaus = calc_plateaus(dof_vals, self.edges, rel_tol=1e-5) if (self.k % 2) == 0 else nearly_unique(dof_vals, rel_tol=1e-5)
+                dof_trace[b,i] = max(1,len(plateaus)) #* (k+1)
 
                 # Get the negative log-likelihood
                 log_likelihood_trace[b,i] = self.data_log_likelihood(self.bins[b][-1], self.bins[b][-2], beta)
@@ -136,10 +161,10 @@ class GraphFusedDensity:
                 aic_trace[b,i] = 2. * dof_trace[b,i] - 2. * log_likelihood_trace[b,i]
                 
                 # Calculate AICc = AIC + 2k * (k+1) / (n - k - 1)
-                aicc_trace[b,i] = aic_trace[b,i] + 2 * dof_trace[b,i] * (dof_trace[b,i]+1) / (self.data.shape[0] * self.data.shape[1] - dof_trace[b,i] - 1.)
+                aicc_trace[b,i] = aic_trace[b,i] + 2 * dof_trace[b,i] * (dof_trace[b,i]+1) / (self.data.shape[0] - dof_trace[b,i] - 1.)
 
                 # Calculate BIC = -2ln(L) + k * (ln(n) - ln(2pi))
-                bic_trace[b,i] = -2 * log_likelihood_trace[b,i] + dof_trace[b,i] * (np.log(self.data.shape[0] * self.data.shape[1]) - np.log(2 * np.pi))
+                bic_trace[b,i] = -2 * log_likelihood_trace[b,i] + dof_trace[b,i] * (np.log(self.data.shape[0]) - np.log(2 * np.pi))
 
                 # Track the best model thus far
                 if aic_best_idx[b] is None or aic_trace[b,i] < aic_trace[b,aic_best_idx[b]]:
@@ -156,22 +181,35 @@ class GraphFusedDensity:
                     bic_best_idx[b] = i
                     bic_best_betas[b] = np.array(beta)
 
-            if self.verbose:
-                print 'Log-Likelihood: {0} DoF: {1} AIC: {2} AICc: {3} BIC: {4}'.format(log_likelihood_trace[:,i].sum(), dof_trace[:,i].sum(), aic_trace[:,i].sum(), aicc_trace[:,i].sum(), bic_trace[:,i].sum())
+                if self.verbose and self.bins_allowed is not None:
+                    print '\tBin {0} Log-Likelihood: {1} DoF: {2} AIC: {3} AICc: {4} BIC: {5}'.format(b, log_likelihood_trace[b,i], dof_trace[b,i], aic_trace[b,i], aicc_trace[b,i], bic_trace[b,i])
+
+            if self.verbose and self.bins_allowed is None:
+                print 'Overall Log-Likelihood: {0} DoF: {1} AIC: {2} AICc: {3} BIC: {4}'.format(log_likelihood_trace[:,i].sum(), dof_trace[:,i].sum(), aic_trace[:,i].sum(), aicc_trace[:,i].sum(), bic_trace[:,i].sum())
 
         if self.verbose:
+            print ''
             print 'Best settings per bin:'
             for b, (aic_idx, aicc_idx, bic_idx) in enumerate(zip(aic_best_idx, aicc_best_idx, bic_best_idx)):
+                if self.bins_allowed is not None and b not in self.bins_allowed:
+                    continue
                 left, mid, right, trials, successes = self.bins[b]
-                print 'Bin #{0} ([{1}, {2}], split={3}) lambda: AIC={4:.2f} AICC={5:.2f} BIC={6:.2f} DoF: AIC={7:.0f} AICC={8:.0f} BIC={9:.0f}'.format(
+                print '\tBin #{0} ([{1}, {2}], split={3}) lambda: AIC={4:.2f} AICC={5:.2f} BIC={6:.2f} DoF: AIC={7:.0f} AICC={8:.0f} BIC={9:.0f}'.format(
                         b, left, right, mid,
                         lambda_grid[aic_idx], lambda_grid[aicc_idx], lambda_grid[bic_idx],
                         dof_trace[b,aic_idx], dof_trace[b,aicc_idx], dof_trace[b,bic_idx])
+            print ''
 
-        if self.verbose:
-            print 'Creating densities from betas...'
-
-        self.map_density = self.density_from_betas(bic_best_betas)
+        if self.bins_allowed is None:
+            if self.verbose:
+                print 'Creating densities from betas...'
+            bic_density = self.density_from_betas(bic_best_betas)
+            aic_density = self.density_from_betas(aic_best_betas)
+            aicc_density = self.density_from_betas(aicc_best_betas)
+            self.map_density = bic_density
+        else:
+            aic_density, aicc_density, bic_density = None, None, None
+        
         self.map_betas = bic_best_betas
 
         return {'aic': aic_trace,
@@ -186,47 +224,85 @@ class GraphFusedDensity:
                 'aic_best_idx': aic_best_idx,
                 'aicc_best_idx': aicc_best_idx,
                 'bic_best_idx': bic_best_idx,
-                'aic_densities': self.density_from_betas(aic_best_betas),
-                'aicc_densities': self.density_from_betas(aicc_best_betas),
-                'bic_densities': self.map_density}
+                'aic_densities': aic_density,
+                'aicc_densities': aicc_density,
+                'bic_densities': bic_density}
 
-    def estimate_change_points(self, D, k):
-        if self.map_density is None:
+    def estimate_change_points(self):
+        if self.map_betas is None:
             self.solution_path()
-        delta = get_delta(D, k)
-        return np.array([(np.array(delta.dot(betas)) > 0.04).sum() for betas in self.map_betas])
+        return np.array([(np.array(self.Dk.dot(betas)) > 0.04).sum() for betas in self.map_betas])
 
-    def bayes_estimate(self, k=0, prior='laplacegamma', lam0=None, iterations=1000, burn=100, thin=2):
-        D = matrix_from_edges(self.edges)
-
-        if lam0 is None:
-            change_points = self.estimate_change_points(D, k)
-            lam0 = ((change_points+1.0) / float(D.shape[0]))**(float(D.shape[1])/float(D.shape[0]))
+    def bayes_estimate(self, prior='laplacegamma',
+                        empirical=False, lam0=None, explore_iterations=1000, explore_burn=100, explore_thin=2,
+                        iterations=10000, burn=2000, thin=5):
+        # if lam0 is None and empirical:
+        #     change_points = self.estimate_change_points()
+        #     lam0 = ((change_points+1.0) / float(self.D.shape[0]))**(float(self.D.shape[1])/float(self.D.shape[0]))
         
         sample_size = (iterations - burn) / thin
-        beta_samples = np.array([np.zeros((sample_size, D.shape[1]), dtype='double') for _ in self.bins])
-        lam_samples = np.array([np.zeros(sample_size, dtype='double') for _ in self.bins])
-        for j, (left, mid, right, trials, successes) in enumerate(self.bins):
+        
+        if self.bins_allowed is None:
+            beta_samples = np.array([np.zeros((sample_size, self.D.shape[1]), dtype='double') for _ in self.bins])
+            lam_samples = np.array([np.zeros(sample_size, dtype='double') for _ in self.bins])
+            target_bins = self.bins
+        else:
+            beta_samples = np.array([np.zeros((sample_size, self.D.shape[1]), dtype='double') for _ in self.bins_allowed])
+            lam_samples = np.array([np.zeros(sample_size, dtype='double') for _ in self.bins_allowed])
+            target_bins = [self.bins[x] for x in self.bins_allowed]
+
+        for j, (left, mid, right, trials, successes) in enumerate(target_bins):
             if self.verbose:
-                print 'Bin #{0}'.format(j)
-            if self.bins_allowed is not None and j not in self.bins_allowed:
-                continue
-            beta, lam = sample_gtf((trials, successes), D, k, likelihood='binomial', prior=prior,
-                                   empirical=True, lam0=lam0[j],
+                print 'Bin #{0}'.format(j if self.bins_allowed is None else self.bins_allowed[j])
+
+            if empirical:
+                best_dic = None
+                best_bic = None
+                best_lam = None
+                for lam in lam0[j]:
+                    betas, lams = sample_gtf((trials, successes), self.D, self.k,
+                                           likelihood='binomial', prior=prior,
+                                           empirical=empirical, lam0=lam,
+                                           iterations=explore_iterations, burn=explore_burn, thin=explore_thin,
+                                           verbose=self.verbose)
+                    mean_beta = betas.mean(axis=0)
+                    log_likelihood = self.data_log_likelihood(successes, trials, mean_beta)
+                    expected_deviance = -2 * np.mean([self.data_log_likelihood(successes, trials, b) for b in betas])
+                    dof = expected_deviance + 2 * log_likelihood
+                    dic = expected_deviance + dof
+                    likelihood_var = np.var([self.data_log_likelihood(successes, trials, b) for b in betas])
+                    dof_vals = self.Dk_minus_one.dot(mean_beta) if self.k > 0 else mean_beta
+                    plateaus = calc_plateaus(dof_vals, self.edges, rel_tol=0.01) if (self.k % 2) == 0 else nearly_unique(dof_vals, rel_tol=0.03)
+                    bic_dof = max(1,len(plateaus))
+                    bic = -2 * log_likelihood + bic_dof * (np.log(self.data.shape[0]) - np.log(2 * np.pi))
+                    if self.verbose > 2:
+                        print '\tlambda: {0} E[D]: {1} DoF: {2} DIC: {3} LikelihoodVariance: {4} BIC-DoF: {5} BIC: {6}'.format(lam, expected_deviance, dof, dic, likelihood_var, bic_dof, bic)
+                    if best_dic is None or dic < best_dic:
+                        best_dic = dic
+                    if best_bic is None or bic < best_bic:
+                        best_bic = bic
+                        best_lam = lam
+                if self.verbose:
+                    print 'Empirical Bayes lambda choice: {0} (DIC: {1})'.format(best_lam, best_dic)
+                lam0 = best_lam
+            
+            beta, lam = sample_gtf((trials, successes), self.D, self.k,
+                                   likelihood='binomial', prior=prior,
+                                   empirical=empirical, lam0=lam0,
                                    iterations=iterations, burn=burn, thin=thin,
                                    verbose=self.verbose)
-            beta_samples[j] = -np.log(1./beta - 1.) # convert back to natural parameter form
+
+            beta_samples[j] = -np.log(1./np.clip(beta, 1e-12, 1-1e-12) - 1.) # convert back to natural parameter form
             lam_samples[j] = lam
-        if self.verbose:
-            print 'Creating densities from betas...'
 
-        means = beta_samples.mean(axis=1)
-        density = self.density_from_betas(means)
+        if self.bins_allowed is None:
+            if self.verbose:
+                print 'Creating densities from betas...'
+            means = beta_samples.mean(axis=1)
+            self.bayes_density = self.density_from_betas(means)
+            self.bayes_betas = means
 
-        self.bayes_betas = means
-        self.bayes_density = density
-
-        return {'betas': beta_samples, 'lambdas': lam_samples, 'density': density}
+        return {'betas': beta_samples, 'lambdas': lam_samples, 'density': self.bayes_density}
 
     def density_from_betas(self, betas):
         if self.interpolate:
@@ -253,14 +329,21 @@ class GraphFusedDensity:
             return y / y.sum(axis=1)[:,np.newaxis]
 
 
-    def run(self, _lambda, initial_values=None):
+    def run(self, lam, initial_values=None):
         '''Run the graph-fused logit lasso with a fixed lambda penalty.'''
         if initial_values is not None:
-            betas, zs, us = initial_values
+            if self.k == 0 and self.trails is not None:
+                betas, zs, us = initial_values
+            else:
+                betas, us = initial_values
         else:
-            betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
-            zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
-            us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+            if self.k == 0 and self.trails is not None:
+                betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+                zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+                us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
+            else:
+                betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+                us = [np.zeros(self.Dk.shape[0], dtype='double') for _ in self.bins]
 
         for j, (left, mid, right, trials, successes) in enumerate(self.bins):
             if self.bins_allowed is not None and j not in self.bins_allowed:
@@ -268,19 +351,33 @@ class GraphFusedDensity:
 
             if self.verbose > 2:
                 print '\tBin #{0} [{1},{2},{3}]'.format(j, left, mid, right)
+            # if self.verbose > 3:
+            #     print 'Trials:\n{0}'.format(pretty_str(trials))
+            #     print ''
+            #     print 'Successes:\n{0}'.format(pretty_str(successes))
                 
             beta = betas[j]
-            z = zs[j]
             u = us[j]
 
-            # Run the 1-D fused lasso using a solution path (warm starts) approach to tune the lambda hyperparameter
-            self.graphfl(len(beta), trials, successes,
-                         self.ntrails, self.trails, self.breakpoints,
-                         _lambda, self.alpha, self.inflate,
-                         self.max_steps, self.converge,
-                         beta, z, u)
+            if self.k == 0 and self.trails is not None:
+                z = zs[j]
+                # Run the graph-fused lasso algorithm
+                self.graphfl(len(beta), trials, successes,
+                             self.ntrails, self.trails, self.breakpoints,
+                             lam, self.alpha, self.inflate,
+                             self.max_steps, self.converge,
+                             beta, z, u)
+            else:
+                # Run the graph trend filtering algorithm
+                self.graphtf(len(beta), trials, successes, lam,
+                                 self.Dk.shape[0], self.Dk.shape[1], self.Dk.nnz,
+                                 self.Dk.row.astype('int32'), self.Dk.col.astype('int32'), self.Dk.data.astype('double'),
+                                 self.max_steps, self.converge,
+                                 beta, u)
+                beta = np.clip(beta, 1e-12, 1-1e-12) # numerical stability
+                betas[j] = -np.log(1./beta - 1.) # convert back to natural parameter form
 
-        return (betas, zs, us)
+        return (betas, zs, us) if self.k == 0 and self.trails is not None else (betas, us)
 
     def data_log_likelihood(self, successes, trials, beta):
         '''Calculates the log-likelihood of a Polya tree bin given the beta values.'''
