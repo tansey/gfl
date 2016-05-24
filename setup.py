@@ -20,7 +20,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # C library for the GFL solver
 module1 = Extension('libgraphfl',
                     include_dirs = ['cpp/include/'],
-                    libraries=['gsl', 'gslcblas']
+                    libraries=['gsl', 'gslcblas'],
                     sources = ['cpp/src/graph_fl.c', 'cpp/src/tf_dp.c'])
 
 setup(
