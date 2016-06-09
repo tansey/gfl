@@ -21,6 +21,7 @@ import csv
 import argparse
 import networkx as nx
 from itertools import combinations
+from collections import defaultdict
 
 def plot_trails(subgraphs, trails, step):
     subgraphs_and_trails = subgraphs + trails
@@ -303,6 +304,40 @@ def pseudo_tour_trails(subg, odds, verbose):
     # Return the n trails for a graph with 2n odd-degree vertices
     return trails
 
+def greedy_trails(subg, odds, verbose):
+    '''Greedily select trails by making the longest you can until the end'''
+    if verbose:
+        print '\tCreating edge map'
+
+    edges = defaultdict(list)
+
+    for x,y in subg.edges():
+        edges[x].append(y)
+        edges[y].append(x)
+
+    if verbose:
+        print '\tSelecting trails'
+
+    trails = []
+    for x in subg.nodes():
+        if verbose > 2:
+            print '\t\tNode {0}'.format(x)
+
+        while len(edges[x]) > 0:
+            y = edges[x][0]
+            trail = [(x,y)]
+            edges[x].remove(y)
+            edges[y].remove(x)
+            while len(edges[y]) > 0:
+                x = y
+                y = edges[y][0]
+                trail.append((x,y))
+                edges[x].remove(y)
+                edges[y].remove(x)
+            trails.append(trail)
+    return trails
+
+
 def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
     '''Decompose a graph into a set of non-overlapping trails.'''
     # Get the connected subgraphs
@@ -345,6 +380,8 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
                 trails = select_single_edge_trails(subg, verbose)
             elif heuristic == 'tour':
                 trails = pseudo_tour_trails(subg, odds, verbose)
+            elif heuristic == 'greedy':
+                trails = greedy_trails(subg, odds, verbose)
 
             if verbose > 2:
                 print '\t\tTrails: {0}'.format(len(trails))
@@ -401,7 +438,7 @@ def main():
 
     parser.add_argument('--max_odds', type=int, default=20, help='The maximum number of odd-degree edges to enumerate all n^2 possibilities before reverting to sampling.')
     parser.add_argument('--plot', action='store_true', help='Plot each individual step of the algorithm.')
-    parser.add_argument('--heuristic', choices=['min', 'max', 'median', 'random', 'any', 'mindegree', 'ones', 'tour'], default='tour', help='The trail selection heuristic.')
+    parser.add_argument('--heuristic', choices=['min', 'max', 'median', 'random', 'any', 'mindegree', 'ones', 'tour', 'greedy'], default='tour', help='The trail selection heuristic.')
 
     # TODO: Add minimum trail count option that repeatedly splits the longest path until satisfied.
 
