@@ -37,7 +37,7 @@ weighted_graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), n
                     ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 class TrailSolver:
-    def __init__(self, alpha=2., inflate=2., maxsteps=1000000, converge=1e-6):
+    def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6):
         self.alpha = alpha
         self.inflate = inflate
         self.maxsteps = maxsteps
@@ -55,6 +55,10 @@ class TrailSolver:
         self.z = np.zeros(self.breakpoints[-1], dtype='double')
         self.u = np.zeros(self.breakpoints[-1], dtype='double')
         self.steps = []
+
+    def set_values_only(self, y, weights=None):
+        self.y = y
+        self.weights = weights
 
     def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''

@@ -142,7 +142,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
     
     step = 0;
     cur_converge = converge + 1;
-    
+
     /* Perform the ADMM iterations until convergence */
     while(step < maxsteps && cur_converge > converge)
     {
@@ -202,7 +202,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
     free(z_ybuff);
     free(z_wbuff);
     free(tf_dp_buf);
-
+    
     return step;
 }
 

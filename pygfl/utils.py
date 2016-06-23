@@ -86,6 +86,25 @@ def save_trails(filename, trails, breakpoints):
         for start, stop in zip([0]+list(breakpoints[:-1]), breakpoints):
             writer.writerow(trails[start:stop])
 
+def chains_to_trails(chains):
+    rows = []
+    for c in chains:
+        rows.append([c[0][0]] + [x[1] for x in c])
+    trails = []
+    breakpoints = []
+    edges = defaultdict(list)
+    for nodes in rows:
+        if len(trails) > 0:
+            breakpoints.append(len(trails))
+        trails.extend(nodes)
+        for n1,n2 in zip(nodes[:-1], nodes[1:]):
+            edges[n1].append(n2)
+            edges[n2].append(n1)
+    if len(trails) > 0:
+        breakpoints.append(len(trails))
+    return (len(breakpoints), np.array(trails, dtype="int32"), np.array(breakpoints, dtype="int32"), edges)
+    
+
 def load_edges(filename):
     with open(filename, 'rb') as f:
         reader = csv.reader(f)
