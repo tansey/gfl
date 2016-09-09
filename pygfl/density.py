@@ -73,6 +73,8 @@ class GraphFusedDensity:
         self.bayes_density = None
         self.map_betas = None
         self.bayes_betas = None
+        self.num_nodes = data.shape[0]
+        self.max_x = data.shape[1]
 
         self.D = matrix_from_edges(self.edges)
         self.Dk = get_delta(self.D, self.k).tocoo()
@@ -81,7 +83,7 @@ class GraphFusedDensity:
         # Create the Polya tree
         self.bins = []
         self.splits = set()
-        self.polya_tree_descend(0, data.shape[1], 0)
+        self.polya_tree_descend(0, self.max_x, 0)
         if self.verbose:
             print 'bins: {0}'.format(len(self.bins))
 
@@ -124,11 +126,11 @@ class GraphFusedDensity:
         aic_best_betas = [None for _ in self.bins]
         aicc_best_betas = [None for _ in self.bins]
         if self.k == 0 and self.trails is not None:
-            betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+            betas = [np.zeros(self.num_nodes, dtype='double') for _ in self.bins]
             zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
             us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
         else:
-            betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+            betas = [np.zeros(self.num_nodes, dtype='double') for _ in self.bins]
             us = [np.zeros(self.Dk.shape[0], dtype='double') for _ in self.bins]
         for i, _lambda in enumerate(lambda_grid):
             if self.verbose:
@@ -161,10 +163,10 @@ class GraphFusedDensity:
                 aic_trace[b,i] = 2. * dof_trace[b,i] - 2. * log_likelihood_trace[b,i]
                 
                 # Calculate AICc = AIC + 2k * (k+1) / (n - k - 1)
-                aicc_trace[b,i] = aic_trace[b,i] + 2 * dof_trace[b,i] * (dof_trace[b,i]+1) / (self.data.shape[0] - dof_trace[b,i] - 1.)
+                aicc_trace[b,i] = aic_trace[b,i] + 2 * dof_trace[b,i] * (dof_trace[b,i]+1) / (self.num_nodes - dof_trace[b,i] - 1.)
 
                 # Calculate BIC = -2ln(L) + k * (ln(n) - ln(2pi))
-                bic_trace[b,i] = -2 * log_likelihood_trace[b,i] + dof_trace[b,i] * (np.log(self.data.shape[0]) - np.log(2 * np.pi))
+                bic_trace[b,i] = -2 * log_likelihood_trace[b,i] + dof_trace[b,i] * (np.log(self.num_nodes) - np.log(2 * np.pi))
 
                 # Track the best model thus far
                 if aic_best_idx[b] is None or aic_trace[b,i] < aic_trace[b,aic_best_idx[b]]:
@@ -274,7 +276,7 @@ class GraphFusedDensity:
                     dof_vals = self.Dk_minus_one.dot(mean_beta) if self.k > 0 else mean_beta
                     plateaus = calc_plateaus(dof_vals, self.edges, rel_tol=0.01) if (self.k % 2) == 0 else nearly_unique(dof_vals, rel_tol=0.03)
                     bic_dof = max(1,len(plateaus))
-                    bic = -2 * log_likelihood + bic_dof * (np.log(self.data.shape[0]) - np.log(2 * np.pi))
+                    bic = -2 * log_likelihood + bic_dof * (np.log(self.num_nodes) - np.log(2 * np.pi))
                     if self.verbose > 2:
                         print '\tlambda: {0} E[D]: {1} DoF: {2} DIC: {3} LikelihoodVariance: {4} BIC-DoF: {5} BIC: {6}'.format(lam, expected_deviance, dof, dic, likelihood_var, bic_dof, bic)
                     if best_dic is None or dic < best_dic:
@@ -307,8 +309,8 @@ class GraphFusedDensity:
     def density_from_betas(self, betas):
         if self.interpolate:
             # Calculate lowest level bins
-            x = np.array(sorted(set([left for left, mid, right, trials, successes in self.bins] + [mid for left, mid, right, trials, successes in self.bins] + [self.data.shape[1]-1])), dtype="double")
-            y = np.ones((self.data.shape[0], len(x)))
+            x = np.array(sorted(set([left for left, mid, right, trials, successes in self.bins] + [mid for left, mid, right, trials, successes in self.bins] + [self.max_x-1])), dtype="double")
+            y = np.ones((self.num_nodes, len(x)))
             for (left, mid, right, trials, successes), beta in zip(self.bins, betas):
                 p = 1. / (1+np.exp(-beta))
                 y[:,np.logical_and(x >= left, x < mid)] *= p[:,np.newaxis]
@@ -316,12 +318,12 @@ class GraphFusedDensity:
             y /= y.sum(axis=1)[:,np.newaxis]
             
             # Interpolate points to form the entire density
-            d = interp1d(x, y)(np.arange(self.data.shape[1]))
+            d = interp1d(x, y)(np.arange(self.max_x))
             d /= d.sum(axis=1)[:,np.newaxis] # re-normalize
 
             return d
         else:
-            y = np.ones(self.data.shape)
+            y = np.ones((self.num_nodes, self.max_x))
             for (left, mid, right, trials, successes), beta in zip(self.bins, betas):
                 p = 1. / (1+np.exp(-beta))
                 y[:,left:mid] *= p[:,np.newaxis]
@@ -338,11 +340,11 @@ class GraphFusedDensity:
                 betas, us = initial_values
         else:
             if self.k == 0 and self.trails is not None:
-                betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+                betas = [np.zeros(self.num_nodes, dtype='double') for _ in self.bins]
                 zs = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
                 us = [np.zeros(self.breakpoints[-1], dtype='double') for _ in self.bins]
             else:
-                betas = [np.zeros(self.data.shape[0], dtype='double') for _ in self.bins]
+                betas = [np.zeros(self.num_nodes, dtype='double') for _ in self.bins]
                 us = [np.zeros(self.Dk.shape[0], dtype='double') for _ in self.bins]
 
         for j, (left, mid, right, trials, successes) in enumerate(self.bins):
