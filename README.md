@@ -50,7 +50,7 @@ To call the solver within a Python program, the simplest way is to use the `easy
 
 ```
 import numpy as np
-from easy import solve_gfl
+from pygfl.easy import solve_gfl
 
 # Load data and edges
 y = np.loadtxt('path/to/data.csv', delimiter=',')
