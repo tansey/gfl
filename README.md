@@ -36,39 +36,31 @@ Note that the installation has not been tested on anything other than Mac OS X a
 
 Running
 =======
-There are two steps in running the GFL solver (once installed). First, you need to decompose your graph into a set of trails then you need to run the C-based GFL solver.
-
-#### 1) Trail decomposition
-Suppose you have a graph file like the one in `example/edges.csv`, where each edge is specified on a new line, with a comma separating vertices:
+The simplest way to run the script is via the command-line `graphfl` script. You just give it a CSV of your data that you wish to smooth and a CSV of your edges, one edge per row:
 
 ```
-0,1
-1,2
-3,4
-2,4
-5,4
-6,0
-3,6
-...
-```
-
-You can then decompose this graph by running the command line `maketrails` script:
-
-```
-trails file --infile example/edges.csv --savet example/trails.csv
-```
-
-This will create a file in `example/trails.csv` containing a set of distinct, non-overlapping trails which minimally decomposes the original graph. Next you need to run the solver.
-
-#### 2) Solving via ADMM
-Given a set of trails in `example/trails.csv` and a vector of observations in `example/data.csv`, you can run the `graphfl` script to execute the GFL solver:
-
-```
-graphfl example/data.csv example/edges.csv --trails example/trails.csv --o example/smoothed.csv
+graphfl example/data.csv example/edges.csv --o example/smoothed.csv
 ```
 
 This will run a solution path to auto-tune the value of the penalty parameter (the λ in equation 1). The results will be saved in `example/smoothed.csv`. The results should look something like the image at the top of the readme.
 
+Calling within Python
+=====================
+To call the solver within a Python program, the simplest way is to use the `easy.solve_gfl` method:
+
+```
+import numpy as np
+from easy import solve_gfl
+
+# Load data and edges
+y = np.loadtxt('path/to/data.csv', delimiter=',')
+edges = np.loadtxt('/path/to/edges.csv', delimiter=',', dtype=int)
+
+# Run the solver
+beta = solve_gfl(y, edges)
+```
+
+There are lots of other configuration options that affect the optimization procedure, but honestly they make little practical difference for most people.
 
 Compiling the C solver lib separately
 =====================================
