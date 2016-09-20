@@ -1,4 +1,4 @@
-'''Copyright (C) 2015 by Wesley Tansey
+'''Copyright (C) 2016 by Wesley Tansey
 
     This file is part of the GFL library.
 
