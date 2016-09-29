@@ -18,6 +18,7 @@ The solution implemented here is based on the graph-theoretic trail decompositio
 Python Requirements
 ===================
 The python (Python version 2) wrapper requires `numpy`, `scipy`, `networkx`, and `matplotlib` to be able to run everything.
+Note that the `libgraphfl` library also depends on the [Gnu Scientific Library `gsl`](https://www.gnu.org/software/gsl/) which should be available on your system.
 
 Installing
 ==========
