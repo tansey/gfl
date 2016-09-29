@@ -15,9 +15,9 @@ where __l__ is a smooth, convex loss function. The problem assumes you are given
 
 The solution implemented here is based on the graph-theoretic trail decomposition and ADMM algorithm implemented in [1]. The code relies on a slightly modified version of a linear-time dynamic programming solution to the 1-d (i.e. chain) GFL [2].
 
-Python requirements
+Python Requirements
 ===================
-The python wrapper requires `numpy`, `scipy`, and `networkx` to be able to run everything.
+The python (Python version 2) wrapper requires `numpy`, `scipy`, `networkx`, and `matplotlib` to be able to run everything.
 
 Installing
 ==========
