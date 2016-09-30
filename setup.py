@@ -49,7 +49,8 @@ setup(
     entry_points={
         'console_scripts': [
             'trails=pygfl.trails:main',
-            'graphfl=pygfl:main'
+            'graphfl=pygfl:main',
+            'imtv=pygfl:imtv'
         ],
     },
     ext_modules=[module1]

@@ -286,6 +286,16 @@ def cube_graph_edges(rows, cols, aisles):
                     edges[j].append(i)
     return edges
 
+def hypercube_edges(dims):
+    '''Create edge lists for an arbitrary hypercube. TODO: this is probably not the fasted way.'''
+    edges = []
+    nodes = np.arange(np.product(dims)).reshape(dims)
+    for i,d in enumerate(dims):
+        for j in xrange(d-1):
+            for n1, n2 in zip(np.take(nodes, [j], axis=i).flatten(), np.take(nodes,[j+1], axis=i).flatten()):
+                edges.append((n1,n2))
+    return edges
+
 def row_col_trails(rows, cols):
     nnodes = rows * cols
     ntrails = rows + cols

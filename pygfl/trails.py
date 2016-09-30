@@ -15,7 +15,6 @@
     You should have received a copy of the GNU Lesser General Public License
     along with the GFL library.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import argparse
@@ -24,6 +23,7 @@ from itertools import combinations
 from collections import defaultdict
 
 def plot_trails(subgraphs, trails, step):
+    import matplotlib.pyplot as plt
     subgraphs_and_trails = subgraphs + trails
     max_cols = 4
     rows = int(len(subgraphs_and_trails) / max_cols) + min(1, len(subgraphs_and_trails) % max_cols)
@@ -481,14 +481,14 @@ def main():
         save_graph(g, args.saveg)
 
     # Plot the initial full graph
-    if args.plot:
-        if args.verbose:
-            print 'Plotting initial graph'
-        fig, ax = plt.subplots()
-        nx.draw(g, with_labels=True, ax=ax)
-        ax.set_title('Full Graph')
-        plt.savefig('../img/graph{0:05d}.pdf'.format(0))
-        plt.clf()
+    # if args.plot:
+    #     if args.verbose:
+    #         print 'Plotting initial graph'
+    #     fig, ax = plt.subplots()
+    #     nx.draw(g, with_labels=True, ax=ax)
+    #     ax.set_title('Full Graph')
+    #     plt.savefig('../img/graph{0:05d}.pdf'.format(0))
+    #     plt.clf()
 
     # Run the graph decomposition algorithm and get the resulting trails
     chains = decompose_graph(g, heuristic=args.heuristic, max_odds=args.max_odds, verbose=args.verbose)
