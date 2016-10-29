@@ -36,6 +36,20 @@ weighted_graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), n
                     c_double, c_double, c_double, c_int, c_double,
                     ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
+graphfl_lams = graphfl_lib.graph_fused_lasso_lams_warm
+graphfl_lams.restype = c_int
+graphfl_lams.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'),
+                    c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                    ndpointer(c_double, flags='C_CONTIGUOUS'), c_double, c_double, c_int, c_double,
+                    ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
+weighted_graphfl_lams = graphfl_lib.graph_fused_lasso_lams_weight_warm
+weighted_graphfl_lams.restype = c_int
+weighted_graphfl_lams.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
+                    c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+                    ndpointer(c_double, flags='C_CONTIGUOUS'), c_double, c_double, c_int, c_double,
+                    ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
+
 class TrailSolver:
     def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6):
         self.alpha = alpha
@@ -60,22 +74,61 @@ class TrailSolver:
         self.y = y
         self.weights = weights
 
-    def solve(self, lam):
+    def solve(self, lam, penalty='lasso'):
         '''Solves the GFL for a fixed value of lambda.'''
-        if self.weights is None:
-            s = graphfl(self.nnodes, self.y,
-                            self.ntrails, self.trails, self.breakpoints,
-                            lam,
-                            self.alpha, self.inflate, self.maxsteps, self.converge,
-                            self.beta, self.z, self.u)
+        if penalty == 'dp':
+            return self.solve_dp(lam)
+        if hasattr(lam, '__len__'):
+            if self.weights is None:
+                s = graphfl_lams(self.nnodes, self.y,
+                                self.ntrails, self.trails, self.breakpoints,
+                                lam,
+                                self.alpha, self.inflate, self.maxsteps, self.converge,
+                                self.beta, self.z, self.u)
+            else:
+                s = weighted_graphfl_lams(self.nnodes, self.y, self.weights,
+                                self.ntrails, self.trails, self.breakpoints,
+                                lam,
+                                self.alpha, self.inflate, self.maxsteps, self.converge,
+                                self.beta, self.z, self.u)
         else:
-            s = weighted_graphfl(self.nnodes, self.y, self.weights,
-                            self.ntrails, self.trails, self.breakpoints,
-                            lam,
-                            self.alpha, self.inflate, self.maxsteps, self.converge,
-                            self.beta, self.z, self.u)
+            if self.weights is None:
+                s = graphfl(self.nnodes, self.y,
+                                self.ntrails, self.trails, self.breakpoints,
+                                lam,
+                                self.alpha, self.inflate, self.maxsteps, self.converge,
+                                self.beta, self.z, self.u)
+            else:
+                s = weighted_graphfl(self.nnodes, self.y, self.weights,
+                                self.ntrails, self.trails, self.breakpoints,
+                                lam,
+                                self.alpha, self.inflate, self.maxsteps, self.converge,
+                                self.beta, self.z, self.u)
         self.steps.append(s)
         return self.beta
+
+    def solve_dp(self, lam):
+        '''Solves the Graph-fused double Pareto (non-convex, local optima only)'''
+        cur_converge = self.converge+1
+        step = 0
+        # Get an initial estimate using the GFL
+        self.solve(lam)
+        beta2 = np.copy(self.beta)
+        while cur_converge > self.converge and step < self.maxsteps:
+            # Weight each edge differently
+            u = lam / (1 + np.abs(self.beta[1:] - self.beta[:-1]))
+            # Swap the beta buffers
+            temp = self.beta
+            self.beta = beta2
+            beta2 = temp
+            # Solve the edge-weighted GFL problem, which updates beta
+            self.solve(u)
+            # Check for convergence
+            cur_converge = np.sqrt(((self.beta - beta2)**2).sum())
+            step += 1
+        self.steps.append(step)
+        return self.beta
+
 
     def solution_path(self, min_lambda, max_lambda, lambda_bins, verbose=0):
         '''Follows the solution path to find the best lambda value.'''

@@ -63,6 +63,45 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
                         int maxsteps, double converge,
                         double *beta, double *z, double *u);
 
+/**********************************************************************
+Lambda-per-edge case where all trails are required to be of length 1.
+*********************************************************************/
+int graph_fused_lasso_lams (int n, double *y,
+                            int ntrails, int *trails, int *breakpoints,
+                            double *lam, double alpha, double inflate,
+                            int maxsteps, double converge,
+                            double *beta);
+
+int graph_fused_lasso_lams_weight (int n, double *y, double *w,
+                        int ntrails, int *trails, int *breakpoints,
+                        double *lam, double alpha, double inflate,
+                        int maxsteps, double converge,
+                        double *beta);
+
+int graph_fused_lasso_lams_logit (int n, int *trials, int *successes,
+                        int ntrails, int *trails, int *breakpoints,
+                        double *lam, double alpha, double inflate,
+                        int maxsteps, double converge,
+                        double *beta);
+
+int graph_fused_lasso_lams_warm (int n, double *y,
+                        int ntrails, int *trails, int *breakpoints,
+                        double *lam, double alpha, double inflate,
+                        int maxsteps, double converge,
+                        double *beta, double *z, double *u);
+
+int graph_fused_lasso_lams_weight_warm (int n, double *y, double *w,
+                        int ntrails, int *trails, int *breakpoints,
+                        double *lam, double alpha, double inflate,
+                        int maxsteps, double converge,
+                        double *beta, double *z, double *u);
+
+int graph_fused_lasso_logit_lams_warm (int n, int *trials, int *successes,
+                        int ntrails, int *trails, int *breakpoints,
+                        double *lam, double alpha, double inflate,
+                        int maxsteps, double converge,
+                        double *beta, double *z, double *u);
+
 
 void update_beta(int n, double *y, double *z, double *u, int *nzmap, int *zmap, double alpha, double *beta);
 void update_beta_weight(int n, double *y, double *w, double *z, double *u, int *nzmap, int *zmap, double alpha, double *beta);
@@ -70,6 +109,7 @@ void update_z(int ntrails, int *trails, int *breakpoints, double *beta, double *
 void update_u(int n, double *beta, double *z, int *zmap, int *nzmap, double *u);
 double primal_resnorm(int n, double *beta, double *z, int *nzmap, int *zmap);
 double dual_resnorm(int nz, double *z, double *zold, double alpha);
+void update_z_lams(int ntrails, int *trails, int *breakpoints, double *beta, double *u, double *lam, double *ybuf, double *wbuf, double *tf_dp_buf, double *z);
 
 #endif
 

@@ -16,11 +16,11 @@
     along with the GFL library.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from networkx import Graph
-from trails import load_graph, decompose_graph
+from trails import decompose_graph
 from solver import TrailSolver
 from utils import *
 
-def solve_gfl(data, edges,
+def solve_gfl(data, edges, weights=None,
               minlam=0.2, maxlam=1000.0, numlam=30,
               alpha=0.2, inflate=2., converge=1e-6,
               maxsteps=1000000, lam=None, verbose=0):
@@ -42,7 +42,7 @@ def solve_gfl(data, edges,
     solver = TrailSolver(alpha, inflate, maxsteps, converge)
 
     # Set the data and pre-cache any necessary structures
-    solver.set_data(data, edges, ntrails, trails, breakpoints)
+    solver.set_data(data, edges, ntrails, trails, breakpoints, weights=weights)
 
     if verbose:
         print 'Solving'

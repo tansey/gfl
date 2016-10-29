@@ -60,7 +60,7 @@ class TrendFilteringSolver:
         self.initialize(D, k)
 
     def initialize(self, D, k):
-        self.nnodes = len(y)
+        self.nnodes = len(self.y)
         self.D = D
         self.k = k
         self.Dk = get_delta(D, k).tocoo()
