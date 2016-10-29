@@ -51,11 +51,12 @@ weighted_graphfl_lams.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS
                     ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 class TrailSolver:
-    def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6):
+    def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6, penalty='lasso'):
         self.alpha = alpha
         self.inflate = inflate
         self.maxsteps = maxsteps
         self.converge = converge
+        self.penalty = penalty
 
     def set_data(self, y, edges, ntrails, trails, breakpoints, weights=None):
         self.y = y
@@ -74,10 +75,15 @@ class TrailSolver:
         self.y = y
         self.weights = weights
 
-    def solve(self, lam, penalty='lasso'):
+    def solve(self, lam):
         '''Solves the GFL for a fixed value of lambda.'''
-        if penalty == 'dp':
+        if self.penalty == 'dp':
             return self.solve_dp(lam)
+        if self.penalty == 'lasso':
+            return self.solve_gfl(lam)
+        raise Exception('Unknown penalty type: {0}'.format(self.penalty))
+
+    def solve_gfl(self, lam):
         if hasattr(lam, '__len__'):
             if self.weights is None:
                 s = graphfl_lams(self.nnodes, self.y,
@@ -112,7 +118,7 @@ class TrailSolver:
         cur_converge = self.converge+1
         step = 0
         # Get an initial estimate using the GFL
-        self.solve(lam)
+        self.solve_gfl(lam)
         beta2 = np.copy(self.beta)
         while cur_converge > self.converge and step < self.maxsteps:
             # Weight each edge differently
@@ -122,7 +128,7 @@ class TrailSolver:
             self.beta = beta2
             beta2 = temp
             # Solve the edge-weighted GFL problem, which updates beta
-            self.solve(u)
+            self.solve_gfl(u)
             # Check for convergence
             cur_converge = np.sqrt(((self.beta - beta2)**2).sum())
             step += 1
