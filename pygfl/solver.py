@@ -122,7 +122,7 @@ class TrailSolver:
         beta2 = np.copy(self.beta)
         while cur_converge > self.converge and step < self.maxsteps:
             # Weight each edge differently
-            u = lam / (1 + np.abs(self.beta[1:] - self.beta[:-1]))
+            u = lam / (1 + np.abs(self.beta[self.trails[::2]] - self.beta[self.trails[1::2]]))
             # Swap the beta buffers
             temp = self.beta
             self.beta = beta2
