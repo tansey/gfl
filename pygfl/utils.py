@@ -397,7 +397,8 @@ def decompose_delta(deltak):
     return dk_rows, dk_rowbreaks, dk_cols, dk_vals
 
 def matrix_from_edges(edges):
-    '''Returns a sparse penalty matrix (D) from a list of edge pairs'''
+    '''Returns a sparse penalty matrix (D) from a list of edge pairs. Each edge
+    can have an optional weight associated with it.'''
     max_col = 0
     cols = []
     rows = []
@@ -409,13 +410,15 @@ def matrix_from_edges(edges):
                 if i <= j:
                     edge_list.append((i,j))
         edges = edge_list
-    for i, (s,t) in enumerate(edges):
+    for i, edge in enumerate(edges):
+        s, t = edge[0], edge[1]
+        weight = 1 if len(edge) == 2 else edge[2]
         cols.append(min(s,t))
         cols.append(max(s,t))
         rows.append(i)
         rows.append(i)
-        vals.append(1)
-        vals.append(-1)
+        vals.append(weight)
+        vals.append(-weight)
         if cols[-1] > max_col:
             max_col = cols[-1]
     return coo_matrix((vals, (rows, cols)), shape=(rows[-1]+1, max_col+1))
@@ -431,4 +434,11 @@ def tv_distance(a, b):
     if len(a.shape) == 1:
         return np.sum(np.abs(a - b))
     return np.sum(np.abs(a - b), axis=1)
+
+def edge_map_from_edge_list(edges):
+    result = defaultdict(list)
+    for s,t in edges:
+        result[s].append(t)
+        result[t].append(s)
+    return result
 

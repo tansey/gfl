@@ -51,16 +51,18 @@ weighted_graphfl_lams.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS
                     ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 class TrailSolver:
-    def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6, penalty='lasso'):
+    def __init__(self, alpha=2., inflate=2., maxsteps=100000, converge=1e-6, penalty='gfl', max_dp_steps=5000, gamma=1.):
         self.alpha = alpha
         self.inflate = inflate
         self.maxsteps = maxsteps
         self.converge = converge
         self.penalty = penalty
+        self.max_dp_steps = max_dp_steps
+        self.gamma = gamma
 
     def set_data(self, y, edges, ntrails, trails, breakpoints, weights=None):
         self.y = y
-        self.edges = edges
+        self.edges = edges if type(edges) is defaultdict else edge_map_from_edge_list(edges)
         self.nnodes = len(y)
         self.ntrails = ntrails
         self.trails = trails
@@ -79,7 +81,9 @@ class TrailSolver:
         '''Solves the GFL for a fixed value of lambda.'''
         if self.penalty == 'dp':
             return self.solve_dp(lam)
-        if self.penalty == 'lasso':
+        if self.penalty == 'gfl':
+            return self.solve_gfl(lam)
+        if self.penalty == 'gamlasso':
             return self.solve_gfl(lam)
         raise Exception('Unknown penalty type: {0}'.format(self.penalty))
 
@@ -120,7 +124,7 @@ class TrailSolver:
         # Get an initial estimate using the GFL
         self.solve_gfl(lam)
         beta2 = np.copy(self.beta)
-        while cur_converge > self.converge and step < self.maxsteps:
+        while cur_converge > self.converge and step < self.max_dp_steps:
             # Weight each edge differently
             u = lam / (1 + np.abs(self.beta[self.trails[::2]] - self.beta[self.trails[1::2]]))
             # Swap the beta buffers
@@ -135,6 +139,12 @@ class TrailSolver:
         self.steps.append(step)
         return self.beta
 
+    def solve_gamlasso(self, lam):
+        '''Solves the Graph-fused gamma lasso via POSE (Taddy, 2013)'''
+        weights = lam / (1 + self.gamma * np.abs(self.beta[self.trails[::2]] - self.beta[self.trails[1::2]]))
+        s = self.solve_gfl(u)
+        self.steps.append(s)
+        return self.beta
 
     def solution_path(self, min_lambda, max_lambda, lambda_bins, verbose=0):
         '''Follows the solution path to find the best lambda value.'''
