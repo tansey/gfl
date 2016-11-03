@@ -25,7 +25,7 @@ module1 = Extension('libgraphfl',
 
 setup(
     name='pygfl',
-    version='1.0.1',
+    version='1.0.2',
     description='A Fast and Flexible Graph-Fused Lasso Solver',
     long_description=long_description,
     url='https://github.com/tansey/gfl',
