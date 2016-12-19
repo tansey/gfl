@@ -107,11 +107,8 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
     memcpy(zold, z, nz * sizeof(double));
 
     /* Zero-out vectors to start */
-    for (i = 0; i < n; i++)
-    {
-        zmap[i] = 0;
-        nzmap[i] = 0;
-    }
+    for (i = 0; i < n; i++) { nzmap[i] = 0; }
+    for (i = 0; i < nz; i++){ zmap[i] = 0; }
     
     /* Find the largest amount of memory we need to allocate for the z-update buffers */
     wbufsize = breakpoints[0];
@@ -160,7 +157,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
         
         /* Update each trail dual variable */
         update_z(ntrails, trails, breakpoints, beta, u, lam, z_ybuff, z_wbuff, tf_dp_buf, z);
-        
+
         /* Update the scaled dual variable */
         update_u(n, beta, z, zmap, nzmap, u);
 
@@ -193,7 +190,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
         z = zold;
         zold = ztemp;
     }
-
+    
     /* free up the resources */
     free(zold);
     free(zmap);
@@ -203,7 +200,6 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
     free(z_ybuff);
     free(z_wbuff);
     free(tf_dp_buf);
-    
     return step;
 }
 
@@ -292,11 +288,8 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
     memcpy(zold, z, nz * sizeof(double));
 
     /* Zero-out vectors to start */
-    for (i = 0; i < n; i++)
-    {
-        zmap[i] = 0;
-        nzmap[i] = 0;
-    }
+    for (i = 0; i < n; i++) { nzmap[i] = 0; }
+    for (i = 0; i < nz; i++){ zmap[i] = 0; }
     
     /* Find the largest amount of memory we need to allocate for the z-update buffers */
     wbufsize = breakpoints[0];
@@ -410,6 +403,9 @@ void update_beta(int n, double *y, double *z, double *u, int *nzmap, int *zmap, 
     /* Update each beta in closed form */
     for (i = 0; i < n; i++)
     {
+        if (nzmap[i] == 0){
+            continue;
+        }
         r = 0;    
         /* Sum the dual terms */
         for (ridx = 0; ridx < nzmap[i]; ridx++, zmap_idx++)
@@ -432,6 +428,9 @@ void update_beta_weight(int n, double *y, double *w, double *z, double *u, int *
     /* Update each beta in closed form */
     for (i = 0; i < n; i++)
     {
+        if (nzmap[i] == 0){
+            continue;
+        }
         r = 0;    
         /* Sum the dual terms */
         for (ridx = 0; ridx < nzmap[i]; ridx++, zmap_idx++)
@@ -492,6 +491,9 @@ void update_u(int n, double *beta, double *z, int *zmap, int *nzmap, double *u)
     /* Update the dual variable with the primal residual */
     for (i = 0; i < n; i++)
     {
+        if (nzmap[i] == 0){
+            continue;
+        }
         b = beta[i];
 
         for (zmi = zmoffset; zmi < nzmap[i]+zmoffset; zmi++)
@@ -513,6 +515,9 @@ double primal_resnorm(int n, double *beta, double *z, int *nzmap, int *zmap)
     zmap_idx = 0;
     for(i=0; i < n; i++)
     {
+        if (nzmap[i] == 0){
+            continue;
+        }
         ri = beta[i];
 
         /* Subtract all the dual terms */
@@ -634,11 +639,8 @@ int graph_fused_lasso_lams_weight_warm (int n, double *y, double *w,
     memcpy(zold, z, nz * sizeof(double));
 
     /* Zero-out vectors to start */
-    for (i = 0; i < n; i++)
-    {
-        zmap[i] = 0;
-        nzmap[i] = 0;
-    }
+    for (i = 0; i < n; i++) { nzmap[i] = 0; }
+    for (i = 0; i < nz; i++){ zmap[i] = 0; }
     
     /* Find the largest amount of memory we need to allocate for the z-update buffers */
     wbufsize = breakpoints[0];
@@ -823,11 +825,8 @@ int graph_fused_lasso_logit_lams_warm (int n, int *trials, int *successes,
     memcpy(zold, z, nz * sizeof(double));
 
     /* Zero-out vectors to start */
-    for (i = 0; i < n; i++)
-    {
-        zmap[i] = 0;
-        nzmap[i] = 0;
-    }
+    for (i = 0; i < n; i++) { nzmap[i] = 0; }
+    for (i = 0; i < nz; i++){ zmap[i] = 0; }
     
     /* Find the largest amount of memory we need to allocate for the z-update buffers */
     wbufsize = breakpoints[0];
