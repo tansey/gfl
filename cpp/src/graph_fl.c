@@ -290,7 +290,7 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
     /* Zero-out vectors to start */
     for (i = 0; i < n; i++) { nzmap[i] = 0; }
     for (i = 0; i < nz; i++){ zmap[i] = 0; }
-    
+
     /* Find the largest amount of memory we need to allocate for the z-update buffers */
     wbufsize = breakpoints[0];
     for (i = 1; i < ntrails; i++)
@@ -387,7 +387,6 @@ int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
     free(w);
     free(y);
     free(tf_dp_buf);
-
     return step;
 }
 

@@ -23,6 +23,8 @@ import datetime
 from collections import defaultdict, deque
 from scipy.sparse import issparse, isspmatrix_coo, coo_matrix
 from scipy.sparse.linalg import lsqr
+from networkx import Graph
+from pygfl.trails import decompose_graph
 
 def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
     '''Creates plateaus of constant value in the data.'''
@@ -103,7 +105,13 @@ def chains_to_trails(chains):
     if len(trails) > 0:
         breakpoints.append(len(trails))
     return (len(breakpoints), np.array(trails, dtype="int32"), np.array(breakpoints, dtype="int32"), edges)
-    
+
+def greedy_trails(edges):
+    # Decompose the graph into trails
+    g = Graph()
+    g.add_edges_from(edges)
+    chains = decompose_graph(g, heuristic='greedy')
+    return chains_to_trails(chains)
 
 def load_edges(filename):
     with open(filename, 'rb') as f:
@@ -167,6 +175,8 @@ def make_directory(base, subdir):
 
 def calc_plateaus(beta, edges, rel_tol=1e-4, verbose=0):
     '''Calculate the plateaus (degrees of freedom) of a graph of beta values in linear time.'''
+    if not isinstance(edges, dict):
+        raise Exception('Edges must be a map from each node to a list of neighbors.')
     to_check = deque(xrange(len(beta)))
     check_map = np.zeros(beta.shape, dtype=bool)
     check_map[np.isnan(beta)] = True
@@ -286,7 +296,7 @@ def cube_graph_edges(rows, cols, aisles):
                     edges[j].append(i)
     return edges
 
-def hypercube_edges(dims):
+def hypercube_edges(dims, use_map=False):
     '''Create edge lists for an arbitrary hypercube. TODO: this is probably not the fasted way.'''
     edges = []
     nodes = np.arange(np.product(dims)).reshape(dims)
@@ -294,6 +304,8 @@ def hypercube_edges(dims):
         for j in xrange(d-1):
             for n1, n2 in zip(np.take(nodes, [j], axis=i).flatten(), np.take(nodes,[j+1], axis=i).flatten()):
                 edges.append((n1,n2))
+    if use_map:
+        return edge_map_from_edge_list(edges)
     return edges
 
 def row_col_trails(rows, cols):

@@ -62,19 +62,28 @@ class GraphFusedDensity:
                                         ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS')]
 
 
-    def set_data(self, data, edges, k=0, ntrails=None, trails=None, breakpoints=None):
-        self.data = data
-        self.edges = edges
+    def set_data(self, data, k=0, edges=None, ntrails=None, trails=None, breakpoints=None):
+        if len(data.shape) < 2:
+            raise Exception('The data array must be at least 2-dimensional.')
+        if edges is None:
+            edges = hypercube_edges(data.shape[:-1]) # Assume this is a grid
+            self.ntrails, self.trails, self.breakpoints, self.edges = greedy_trails(edges)
+        else:
+            if len(data.shape) != 2:
+                print ('WARNING: Edges provided, but data is not a 2d array [shape: {0}]. Flattening the first {1} dimensions'.format(data.shape, len(data.shape)-1))
+            self.edges = edges
+            self.ntrails = ntrails
+            self.trails = trails
+            self.breakpoints = breakpoints
+        self.data_shape = data.shape
+        self.data = data.reshape((np.prod(data.shape[:-1]), data.shape[-1]))
         self.k = k
-        self.ntrails = ntrails
-        self.trails = trails
-        self.breakpoints = breakpoints
         self.map_density = None
         self.bayes_density = None
         self.map_betas = None
         self.bayes_betas = None
-        self.num_nodes = data.shape[0]
-        self.max_x = data.shape[1]
+        self.num_nodes = self.data.shape[0]
+        self.max_x = self.data.shape[1]
 
         self.D = matrix_from_edges(self.edges)
         self.Dk = get_delta(self.D, self.k).tocoo()
@@ -226,9 +235,9 @@ class GraphFusedDensity:
                 'aic_best_idx': aic_best_idx,
                 'aicc_best_idx': aicc_best_idx,
                 'bic_best_idx': bic_best_idx,
-                'aic_densities': aic_density,
-                'aicc_densities': aicc_density,
-                'bic_densities': bic_density}
+                'aic_densities': aic_density.reshape(self.data_shape),
+                'aicc_densities': aicc_density.reshape(self.data_shape),
+                'bic_densities': bic_density.reshape(self.data_shape)}
 
     def estimate_change_points(self):
         if self.map_betas is None:
