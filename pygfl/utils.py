@@ -297,7 +297,7 @@ def cube_graph_edges(rows, cols, aisles):
     return edges
 
 def hypercube_edges(dims, use_map=False):
-    '''Create edge lists for an arbitrary hypercube. TODO: this is probably not the fasted way.'''
+    '''Create edge lists for an arbitrary hypercube. TODO: this is probably not the fastest way.'''
     edges = []
     nodes = np.arange(np.product(dims)).reshape(dims)
     for i,d in enumerate(dims):
