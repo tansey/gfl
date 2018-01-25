@@ -341,7 +341,7 @@ def greedy_trails(subg, odds, verbose):
 def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
     '''Decompose a graph into a set of non-overlapping trails.'''
     # Get the connected subgraphs
-    subgraphs = [nx.subgraph(g, x) for x in nx.connected_components(g)]
+    subgraphs = [nx.subgraph(g, x).copy() for x in nx.connected_components(g)]
 
     chains = []
     num_subgraphs = len(subgraphs)
@@ -354,7 +354,7 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
             subg = subgraphs[i]
 
             # Get all odd-degree nodes
-            odds = [x for x,y in nx.degree(subg).iteritems() if y % 2 == 1]
+            odds = [x for x,y in dict(nx.degree(subg)).iteritems() if y % 2 == 1]
 
             if verbose > 1:
                 if len(odds) == 0:
