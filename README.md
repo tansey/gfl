@@ -73,7 +73,7 @@ Then you will need to make sure that you have the `cpp/lib` directory in your `L
 
 `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/my/path/to/gfl/cpp/lib/`
 
-Note the above instructions are for *nix users.
+Note the above instructions are for \*nix users.
 
 Licensing
 =========
@@ -81,6 +81,6 @@ This library / package is distributed under the GNU Lesser General Public Licens
 
 References
 ==========
-[1] W. Tansey and J. G. Scott. "[A Fast and Flexible Algorithm for the Graph-Fused Lasso](http://arxiv.org/abs/1505.06475)," arXiv:1505.06475, May 2015.
+[1] W. Tansey, O. Koyejo, R. A. Poldrack, and J. G. Scott. "[False Discovery Rate Smoothing](http://amstat.tandfonline.com/doi/abs/10.1080/01621459.2017.1319838)," Supplementary material. Journal of the American Statistical Association (JASA): Theory and Methods, June, 2017.
 
 [2] [glmgen](https://github.com/statsmaths/glmgen)
