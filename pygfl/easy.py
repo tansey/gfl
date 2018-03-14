@@ -19,6 +19,7 @@ from networkx import Graph
 from trails import decompose_graph
 from solver import TrailSolver
 from logistic_solver import LogisticTrailSolver
+from binomial_solver import BinomialTrailSolver
 from utils import *
 
 def solve_gfl(data, edges=None, weights=None,
@@ -32,18 +33,28 @@ def solve_gfl(data, edges=None, weights=None,
     if verbose:
         print 'Decomposing graph into trails'
 
-    flat_data = data.flatten()
-    nonmissing_flat_data = flat_data
+    if loss == 'binomial':
+        flat_data = data[0].flatten()
+        nonmissing_flat_data = flat_data, data[1].flatten()
+    else:
+        flat_data = data.flatten()
+        nonmissing_flat_data = flat_data
 
     if edges is None:
         if verbose:
             print 'Using default edge set of a grid of same shape as the data: {0}'.format(data.shape)
-        edges = hypercube_edges(data.shape)
+        if loss == 'binomial':
+            edges = hypercube_edges(data[0].shape)
+        else:
+            edges = hypercube_edges(data.shape)
         if missing_val is not None:
             if verbose:
                 print 'Removing all data points whose data value is {0}'.format(missing_val)
             edges = [(e1,e2) for (e1,e2) in edges if flat_data[e1] != missing_val and flat_data[e2] != missing_val]
-            nonmissing_flat_data = flat_data[flat_data != missing_val]
+            if loss == 'binomial':
+                nonmissing_flat_data = flat_data[flat_data != missing_val], nonmissing_flat_data[1][flat_data != missing_val]
+            else:
+                nonmissing_flat_data = flat_data[flat_data != missing_val]
 
 
     ########### Setup the graph
@@ -60,6 +71,10 @@ def solve_gfl(data, edges=None, weights=None,
         solver = TrailSolver(alpha, inflate, maxsteps, converge)
     elif loss == 'logistic':
         solver = LogisticTrailSolver(alpha, inflate, maxsteps, converge)
+    elif loss == 'binomial':
+        solver = BinomialTrailSolver(alpha, inflate, maxsteps, converge)
+    else:
+        raise NotImplementedError('Loss must be normal, logistic, or binomial')
 
     # Set the data and pre-cache any necessary structures
     solver.set_data(nonmissing_flat_data, edges, ntrails, trails, breakpoints, weights=weights)
