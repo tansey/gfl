@@ -51,7 +51,7 @@ def calc_euler_tour(g, start, end):
     '''Calculates an Euler tour over the graph g from vertex start to vertex end.
     Assumes start and end are odd-degree vertices and that there are no other odd-degree
     vertices.'''
-    even_g = nx.subgraph(g, g.nodes())
+    even_g = nx.subgraph(g, g.nodes()).copy()
     if end in even_g.neighbors(start):
         # If start and end are neighbors, remove the edge
         even_g.remove_edge(start, end)

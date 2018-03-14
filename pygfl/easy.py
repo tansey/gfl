@@ -18,13 +18,15 @@
 from networkx import Graph
 from trails import decompose_graph
 from solver import TrailSolver
+from logistic_solver import LogisticTrailSolver
 from utils import *
 
 def solve_gfl(data, edges=None, weights=None,
               minlam=0.2, maxlam=1000.0, numlam=30,
               alpha=0.2, inflate=2., converge=1e-6,
               maxsteps=1000000, lam=None, verbose=0,
-              missing_val=None, full_path=False):
+              missing_val=None, full_path=False,
+              loss='normal'):
     '''A very easy-to-use version of GFL solver that just requires the data and
     the edges.'''
     if verbose:
@@ -54,7 +56,10 @@ def solve_gfl(data, edges=None, weights=None,
         print 'Setting up trail solver'
 
     ########### Setup the solver
-    solver = TrailSolver(alpha, inflate, maxsteps, converge)
+    if loss == 'normal':
+        solver = TrailSolver(alpha, inflate, maxsteps, converge)
+    elif loss == 'logistic':
+        solver = LogisticTrailSolver(alpha, inflate, maxsteps, converge)
 
     # Set the data and pre-cache any necessary structures
     solver.set_data(nonmissing_flat_data, edges, ntrails, trails, breakpoints, weights=weights)

@@ -146,6 +146,9 @@ class TrailSolver:
         self.steps.append(s)
         return self.beta
 
+    def log_likelihood(self, beta):
+        return -0.5 * ((self.y - beta)**2).sum()
+
     def solution_path(self, min_lambda, max_lambda, lambda_bins, verbose=0):
         '''Follows the solution path to find the best lambda value.'''
         lambda_grid = np.exp(np.linspace(np.log(max_lambda), np.log(min_lambda), lambda_bins))
@@ -177,7 +180,7 @@ class TrailSolver:
                 print 'Calculating AIC'
 
             # Get the negative log-likelihood
-            log_likelihood_trace[i] = -0.5 * ((self.y - beta)**2).sum()
+            log_likelihood_trace[i] = self.log_likelihood(beta)
 
             # Calculate AIC = 2k - 2ln(L)
             aic_trace[i] = 2. * dof_trace[i] - 2. * log_likelihood_trace[i]
