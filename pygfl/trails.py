@@ -41,7 +41,7 @@ def plot_trails(subgraphs, trails, step):
         else:
             ax.set_title('Trail #{0}'.format(i+1-len(subgraphs)))
     if rows > 1 and len(subgraphs_and_trails) % max_cols > 0:
-        for i in xrange((len(subgraphs_and_trails) % max_cols), max_cols):
+        for i in range((len(subgraphs_and_trails) % max_cols), max_cols):
             ax = axarr if cols == 1 else (axarr[rows-1, i] if rows > 1 else axarr[i])
             ax.axis('off')
     plt.savefig('../img/graph{0:05d}.pdf'.format(step))
@@ -122,8 +122,8 @@ def bowtie_graph():
 
 def grid_graph(rows, cols):
     edges = []
-    for x in xrange(cols):
-        for y in xrange(rows):
+    for x in range(cols):
+        for y in range(rows):
             if x < cols-1:
                 edges.append((y*cols+x,y*cols+x+1))
             if y < rows-1:
@@ -134,9 +134,9 @@ def grid_graph(rows, cols):
 
 def cube_graph(rows, cols, aisles):
     edges = []
-    for x in xrange(cols):
-        for y in xrange(rows):
-            for z in xrange(aisles):
+    for x in range(cols):
+        for y in range(rows):
+            for z in range(aisles):
                 node = x * cols * aisles + y * aisles + z
                 if x < cols-1:
                     edges.append((node, (x+1) * cols * aisles + y * aisles + z))
@@ -186,10 +186,10 @@ def select_odd_degree_trail(subg, odds, max_odds, heuristic, verbose):
                 path_lengths.append(len(p))
     else:
         if verbose > 2:
-            print '\t\t\tSampling {0} paths'.format(int(max_odds**2 / 2))
+            print('\t\t\tSampling {0} paths'.format(int(max_odds**2 / 2)))
         for x, y in np.random.choice(odds, size=(int(max_odds**2 / 2), 2)):
             if verbose > 3:
-                print '\t\t\t\tSample {0}'.format(len(paths))
+                print('\t\t\t\tSample {0}'.format(len(paths)))
             if x == y:
                 continue
             p = nx.shortest_path(subg, x, y)
@@ -228,22 +228,22 @@ def sample_pairs(nodes, num_samples):
 
 def select_min_degree_trail(subg, max_nodes, verbose):
     min_degree = np.array(nx.degree(subg).values()).min()
-    nodes = [n for n,d in nx.degree(subg).iteritems() if d == min_degree]
+    nodes = [n for n,d in nx.degree(subg).items() if d == min_degree]
 
     # Ugly quick and dirty... grossssss
     while len(nodes) < 2:
         min_degree += 1
-        nodes.extend([n for n,d in nx.degree(subg).iteritems() if d == min_degree])
+        nodes.extend([n for n,d in nx.degree(subg).items() if d == min_degree])
     
     if args.verbose > 1:
-        print '\t\tMin degree: {0}. # min nodes: {1}'.format(min_degree, len(nodes))
+        print('\t\tMin degree: {0}. # min nodes: {1}'.format(min_degree, len(nodes)))
 
     pairs = combinations(nodes, 2) if len(nodes) < max_nodes else sample_pairs(nodes, max_nodes * (max_nodes-1))
     paths = [nx.shortest_path(subg, x, y) for x,y in pairs]
     sizes = np.array([len(p) for p in paths])
     median = np.median(sizes)
     trailidx = np.argmax(np.abs(sizes - median))
-    print trailidx, sizes[trailidx]
+    print(trailidx, sizes[trailidx])
     return [path_to_trail(paths[trailidx])]
 
 
@@ -307,7 +307,7 @@ def pseudo_tour_trails(subg, odds, verbose):
 def greedy_trails(subg, odds, verbose):
     '''Greedily select trails by making the longest you can until the end'''
     if verbose:
-        print '\tCreating edge map'
+        print('\tCreating edge map')
 
     edges = defaultdict(list)
 
@@ -316,12 +316,12 @@ def greedy_trails(subg, odds, verbose):
         edges[y].append(x)
 
     if verbose:
-        print '\tSelecting trails'
+        print('\tSelecting trails')
 
     trails = []
     for x in subg.nodes():
         if verbose > 2:
-            print '\t\tNode {0}'.format(x)
+            print('\t\tNode {0}'.format(x))
 
         while len(edges[x]) > 0:
             y = edges[x][0]
@@ -348,21 +348,21 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
     step = 0
     while num_subgraphs > 0:
         if verbose:
-            print 'Step #{0} ({1} subgraphs)'.format(step, num_subgraphs)
+            print('Step #{0} ({1} subgraphs)'.format(step, num_subgraphs))
 
-        for i in xrange(num_subgraphs-1, -1, -1):
+        for i in range(num_subgraphs-1, -1, -1):
             subg = subgraphs[i]
 
             # Get all odd-degree nodes
-            odds = [x for x,y in dict(nx.degree(subg)).iteritems() if y % 2 == 1]
+            odds = [x for x,y in dict(nx.degree(subg)).items() if y % 2 == 1]
 
             if verbose > 1:
                 if len(odds) == 0:
-                    print '\t\tNo odds'
+                    print('\t\tNo odds')
                 elif len(odds) == 2:
-                    print '\t\tExactly 2 odds'
+                    print('\t\tExactly 2 odds')
                 else:
-                    print '\t\t{0} odds'.format(len(odds))
+                    print('\t\t{0} odds'.format(len(odds)))
             
             # If there are no odd-degree edges, we can find an euler circuit
             if len(odds) == 0:
@@ -384,7 +384,7 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
                 trails = greedy_trails(subg, odds, verbose)
 
             if verbose > 2:
-                print '\t\tTrails: {0}'.format(len(trails))
+                print('\t\tTrails: {0}'.format(len(trails)))
 
             # Remove the trail
             for trail in trails:
@@ -449,20 +449,20 @@ def main():
 
     if args.graph_type == 'file' or args.graph_type == 'f':
         if args.verbose:
-            print 'Loading graph from {0}'.format(args.infile)
+            print('Loading graph from {0}'.format(args.infile))
         g = load_graph(args.infile)
     elif args.graph_type == 'grid' or args.graph_type == 'g':
         if args.verbose:
-            print 'Creating a {0} x {1} grid graph'.format(args.rows, args.cols)
+            print('Creating a {0} x {1} grid graph'.format(args.rows, args.cols))
         g = grid_graph(args.rows, args.cols)
     elif args.graph_type == 'cube' or args.graph_type == 'c':
         if args.verbose:
-            print 'Creating a {0} x {1} x {2} cube graph'.format(args.rows, args.cols, args.aisles)
+            print('Creating a {0} x {1} x {2} cube graph'.format(args.rows, args.cols, args.aisles))
         g = cube_graph(args.rows, args.cols, args.aisles)
     elif args.graph_type == 'random' or args.graph_type == 'r':
         if args.verbose:
             #print 'Creating a random graph with {0} nodes and sparsity of {1}'.format(args.n, args.sparsity)
-            print 'Creating a random graph with {0} nodes and {1} edges'.format(args.n, args.num_edges)
+            print('Creating a random graph with {0} nodes and {1} edges'.format(args.n, args.num_edges))
         #g = random_graph(args.n, sparsity=args.sparsity, min_edges=args.min_edges)
         g = random_graph_edges(args.n, args.num_edges)
     else:
@@ -471,13 +471,13 @@ def main():
     total_edges = g.number_of_edges() # sanity check number at the end
 
     if args.verbose:
-        print '# of nodes in graph: {0}'.format(g.number_of_nodes())
-        print '# of edges in graph: {0}'.format(total_edges)
+        print('# of nodes in graph: {0}'.format(g.number_of_nodes()))
+        print('# of edges in graph: {0}'.format(total_edges))
 
     
     if args.saveg:
         if args.verbose:
-            print 'Saving graph to {0}'.format(args.saveg)
+            print('Saving graph to {0}'.format(args.saveg))
         save_graph(g, args.saveg)
 
     # Plot the initial full graph
@@ -500,14 +500,14 @@ def main():
 
     # Sanity check the trails to make sure we found all the edges
     if args.verbose:
-        print 'Verifying solution... (will crash if failed)'
+        print('Verifying solution... (will crash if failed)')
     count = sum([len(t) for t in chains])
     assert(count == total_edges)
 
     v = np.array([len(t) for t in chains])
-    print 'mean trail length: {0} stdev: {1} min: {2} max: {3}'.format(v.mean(0), v.std(), v.min(), v.max())
+    print('mean trail length: {0} stdev: {1} min: {2} max: {3}'.format(v.mean(0), v.std(), v.min(), v.max()))
 
     if args.savet:
         if args.verbose:
-            print 'Saving trails to {0}'.format(args.savet)
+            print('Saving trails to {0}'.format(args.savet))
         save_chains(chains, args.savet)

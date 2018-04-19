@@ -31,7 +31,7 @@ def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
     nodes = set(edges.keys())
     if plateaus is None:
         plateaus = []
-        for i in xrange(len(plateau_vals)):
+        for i in range(len(plateau_vals)):
             if len(nodes) == 0:
                 break
             node = np.random.choice(list(nodes))
@@ -125,12 +125,12 @@ def load_edges(filename):
     return edges
 
 def num_edges(edges):
-    return sum([len(y) for x,y in edges.iteritems()]) / 2
+    return sum([len(y) for x,y in edges.items()]) / 2
 
 def save_edges(filename, edges):
     with open(filename, 'wb') as f:
         writer = csv.writer(f)
-        for x,Y in edges.iteritems():
+        for x,Y in edges.items():
             for y in Y:
                 if x < y:
                     writer.writerow((x,y))
@@ -177,21 +177,21 @@ def calc_plateaus(beta, edges, rel_tol=1e-4, verbose=0):
     '''Calculate the plateaus (degrees of freedom) of a graph of beta values in linear time.'''
     if not isinstance(edges, dict):
         raise Exception('Edges must be a map from each node to a list of neighbors.')
-    to_check = deque(xrange(len(beta)))
+    to_check = deque(range(len(beta)))
     check_map = np.zeros(beta.shape, dtype=bool)
     check_map[np.isnan(beta)] = True
     plateaus = []
 
     if verbose:
-        print '\tCalculating plateaus...'
+        print('\tCalculating plateaus...')
 
     if verbose > 1:
-        print '\tIndices to check {0} {1}'.format(len(to_check), check_map.shape)
+        print('\tIndices to check {0} {1}'.format(len(to_check), check_map.shape))
 
     # Loop until every beta index has been checked
     while to_check:
         if verbose > 1:
-            print '\t\tPlateau #{0}'.format(len(plateaus) + 1)
+            print('\t\tPlateau #{0}'.format(len(plateaus) + 1))
 
         # Get the next unchecked point on the grid
         idx = to_check.popleft()
@@ -252,15 +252,15 @@ def nearly_unique(arr, rel_tol=1e-4, verbose=0):
 
 def line_graph_edges(length):
     edges = defaultdict(list)
-    for i in xrange(length-1):
+    for i in range(length-1):
         edges[i].append(i+1)
         edges[i+1].append(i)
     return edges
 
 def grid_graph_edges(rows, cols):
     edges = defaultdict(list)
-    for x in xrange(cols):
-        for y in xrange(rows):
+    for x in range(cols):
+        for y in range(rows):
             if x < cols-1:
                 i = int(y*cols+x)
                 j = int(y*cols+x+1)
@@ -275,9 +275,9 @@ def grid_graph_edges(rows, cols):
 
 def cube_graph_edges(rows, cols, aisles):
     edges = defaultdict(list)
-    for x in xrange(cols):
-        for y in xrange(rows):
-            for z in xrange(aisles):
+    for x in range(cols):
+        for y in range(rows):
+            for z in range(aisles):
                 node = x * cols * aisles + y * aisles + z
                 if x < cols-1:
                     i = node
@@ -301,7 +301,7 @@ def hypercube_edges(dims, use_map=False):
     edges = []
     nodes = np.arange(np.product(dims)).reshape(dims)
     for i,d in enumerate(dims):
-        for j in xrange(d-1):
+        for j in range(d-1):
             for n1, n2 in zip(np.take(nodes, [j], axis=i).flatten(), np.take(nodes,[j+1], axis=i).flatten()):
                 edges.append((n1,n2))
     if use_map:
@@ -327,7 +327,7 @@ def get_1d_penalty_matrix(length, sparse=False):
         D = coo_matrix((data, (rows, cols)), shape=(length-1, length))
     else:
         D = np.eye(length, dtype=float)[0:-1] * -1
-        for i in xrange(len(D)):
+        for i in range(len(D)):
             D[i,i+1] = 1
     return D
 
@@ -336,8 +336,8 @@ def get_2d_penalty_matrix(rows, cols, sparse=True):
     rvals = []
     cvals = []
     data = []
-    for y in xrange(rows):
-        for x in xrange(cols - 1):
+    for y in range(rows):
+        for x in range(cols - 1):
             rvals.append(r)
             rvals.append(r)
             r += 1
@@ -345,8 +345,8 @@ def get_2d_penalty_matrix(rows, cols, sparse=True):
             cvals.append(y*cols+x+1)
             data.append(-1)
             data.append(1)
-    for y in xrange(rows - 1):
-        for x in xrange(cols):
+    for y in range(rows - 1):
+        for x in range(cols):
             rvals.append(r)
             rvals.append(r)
             r += 1
@@ -364,8 +364,8 @@ def special_2d(rows, cols, sparse=True):
     rvals = []
     cvals = []
     data = []
-    for y in xrange(rows - 1):
-        for x in xrange(cols):
+    for y in range(rows - 1):
+        for x in range(cols):
             rvals.append(r)
             rvals.append(r)
             r += 1
@@ -373,8 +373,8 @@ def special_2d(rows, cols, sparse=True):
             cvals.append((y+1)*cols+x)
             data.append(-1)
             data.append(1)
-    for y in xrange(cols - 1):
-        for x in xrange(rows):
+    for y in range(cols - 1):
+        for x in range(rows):
             rvals.append(r)
             rvals.append(r)
             r += 1
@@ -393,7 +393,7 @@ def get_delta(D, k):
     if k < 0:
         raise Exception('k must be at least 0th order.')
     result = D
-    for i in xrange(k):
+    for i in range(k):
         result = D.T.dot(result) if i % 2 == 0 else D.dot(result)
     return result
 
@@ -417,7 +417,7 @@ def matrix_from_edges(edges):
     vals = []
     if type(edges) is defaultdict:
         edge_list = []
-        for i, neighbors in edges.iteritems():
+        for i, neighbors in edges.items():
             for j in neighbors:
                 if i <= j:
                     edge_list.append((i,j))

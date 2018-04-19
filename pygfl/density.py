@@ -21,8 +21,8 @@ from scipy.stats import binom
 from scipy.interpolate import interp1d
 from collections import deque
 from ctypes import *
-from bayes import sample_gtf
-from utils import *
+from pygfl.bayes import sample_gtf
+from pygfl.utils import *
 
 class GraphFusedDensity:
     def __init__(self, dof_tolerance=1e-4, converge=1e-6, max_steps=100,
@@ -70,7 +70,7 @@ class GraphFusedDensity:
             self.ntrails, self.trails, self.breakpoints, self.edges = greedy_trails(edges)
         else:
             if len(data.shape) != 2:
-                print ('WARNING: Edges provided, but data is not a 2d array [shape: {0}]. Flattening the first {1} dimensions'.format(data.shape, len(data.shape)-1))
+                print('WARNING: Edges provided, but data is not a 2d array [shape: {0}]. Flattening the first {1} dimensions'.format(data.shape, len(data.shape)-1))
             self.edges = edges
             self.ntrails = ntrails
             self.trails = trails
@@ -94,7 +94,7 @@ class GraphFusedDensity:
         self.splits = set()
         self.polya_tree_descend(0, self.max_x, 0)
         if self.verbose:
-            print 'bins: {0}'.format(len(self.bins))
+            print('bins: {0}'.format(len(self.bins)))
 
     def polya_tree_descend(self, left, right, level):
         if (right - left) < 2:
@@ -143,14 +143,14 @@ class GraphFusedDensity:
             us = [np.zeros(self.Dk.shape[0], dtype='double') for _ in self.bins]
         for i, _lambda in enumerate(lambda_grid):
             if self.verbose:
-                print '\n#{0} Lambda = {1}'.format(i, _lambda)
+                print('\n#{0} Lambda = {1}'.format(i, _lambda))
 
             # Run the graph fused lasso over each bin with the current lambda value
             initial_values = (betas, zs, us) if self.k == 0 and self.trails is not None else (betas, us)
             self.run(_lambda, initial_values=initial_values)
 
             if self.verbose > 1:
-                print '\tCalculating degrees of freedom and information criteria'
+                print('\tCalculating degrees of freedom and information criteria')
 
             for b, beta in enumerate(betas):
                 if self.bins_allowed is not None and b not in self.bins_allowed:
@@ -193,27 +193,27 @@ class GraphFusedDensity:
                     bic_best_betas[b] = np.array(beta)
 
                 if self.verbose and self.bins_allowed is not None:
-                    print '\tBin {0} Log-Likelihood: {1} DoF: {2} AIC: {3} AICc: {4} BIC: {5}'.format(b, log_likelihood_trace[b,i], dof_trace[b,i], aic_trace[b,i], aicc_trace[b,i], bic_trace[b,i])
+                    print('\tBin {0} Log-Likelihood: {1} DoF: {2} AIC: {3} AICc: {4} BIC: {5}'.format(b, log_likelihood_trace[b,i], dof_trace[b,i], aic_trace[b,i], aicc_trace[b,i], bic_trace[b,i]))
 
             if self.verbose and self.bins_allowed is None:
-                print 'Overall Log-Likelihood: {0} DoF: {1} AIC: {2} AICc: {3} BIC: {4}'.format(log_likelihood_trace[:,i].sum(), dof_trace[:,i].sum(), aic_trace[:,i].sum(), aicc_trace[:,i].sum(), bic_trace[:,i].sum())
+                print('Overall Log-Likelihood: {0} DoF: {1} AIC: {2} AICc: {3} BIC: {4}'.format(log_likelihood_trace[:,i].sum(), dof_trace[:,i].sum(), aic_trace[:,i].sum(), aicc_trace[:,i].sum(), bic_trace[:,i].sum()))
 
         if self.verbose:
-            print ''
-            print 'Best settings per bin:'
+            print('')
+            print('Best settings per bin:')
             for b, (aic_idx, aicc_idx, bic_idx) in enumerate(zip(aic_best_idx, aicc_best_idx, bic_best_idx)):
                 if self.bins_allowed is not None and b not in self.bins_allowed:
                     continue
                 left, mid, right, trials, successes = self.bins[b]
-                print '\tBin #{0} ([{1}, {2}], split={3}) lambda: AIC={4:.2f} AICC={5:.2f} BIC={6:.2f} DoF: AIC={7:.0f} AICC={8:.0f} BIC={9:.0f}'.format(
+                print('\tBin #{0} ([{1}, {2}], split={3}) lambda: AIC={4:.2f} AICC={5:.2f} BIC={6:.2f} DoF: AIC={7:.0f} AICC={8:.0f} BIC={9:.0f}'.format(
                         b, left, right, mid,
                         lambda_grid[aic_idx], lambda_grid[aicc_idx], lambda_grid[bic_idx],
-                        dof_trace[b,aic_idx], dof_trace[b,aicc_idx], dof_trace[b,bic_idx])
-            print ''
+                        dof_trace[b,aic_idx], dof_trace[b,aicc_idx], dof_trace[b,bic_idx]))
+            print('')
 
         if self.bins_allowed is None:
             if self.verbose:
-                print 'Creating densities from betas...'
+                print('Creating densities from betas...')
             bic_density = self.density_from_betas(bic_best_betas)
             aic_density = self.density_from_betas(aic_best_betas)
             aicc_density = self.density_from_betas(aicc_best_betas)
@@ -264,7 +264,7 @@ class GraphFusedDensity:
 
         for j, (left, mid, right, trials, successes) in enumerate(target_bins):
             if self.verbose:
-                print 'Bin #{0}'.format(j if self.bins_allowed is None else self.bins_allowed[j])
+                print('Bin #{0}'.format(j if self.bins_allowed is None else self.bins_allowed[j]))
 
             if empirical:
                 best_dic = None
@@ -287,14 +287,14 @@ class GraphFusedDensity:
                     bic_dof = max(1,len(plateaus))
                     bic = -2 * log_likelihood + bic_dof * (np.log(self.num_nodes) - np.log(2 * np.pi))
                     if self.verbose > 2:
-                        print '\tlambda: {0} E[D]: {1} DoF: {2} DIC: {3} LikelihoodVariance: {4} BIC-DoF: {5} BIC: {6}'.format(lam, expected_deviance, dof, dic, likelihood_var, bic_dof, bic)
+                        print('\tlambda: {0} E[D]: {1} DoF: {2} DIC: {3} LikelihoodVariance: {4} BIC-DoF: {5} BIC: {6}'.format(lam, expected_deviance, dof, dic, likelihood_var, bic_dof, bic))
                     if best_dic is None or dic < best_dic:
                         best_dic = dic
                     if best_bic is None or bic < best_bic:
                         best_bic = bic
                         best_lam = lam
                 if self.verbose:
-                    print 'Empirical Bayes lambda choice: {0} (DIC: {1})'.format(best_lam, best_dic)
+                    print('Empirical Bayes lambda choice: {0} (DIC: {1})'.format(best_lam, best_dic))
                 lam0 = best_lam
             
             beta, lam = sample_gtf((trials, successes), self.D, self.k,
@@ -308,7 +308,7 @@ class GraphFusedDensity:
 
         if self.bins_allowed is None:
             if self.verbose:
-                print 'Creating densities from betas...'
+                print('Creating densities from betas...')
             means = beta_samples.mean(axis=1)
             self.bayes_density = self.density_from_betas(means)
             self.bayes_betas = means
@@ -361,7 +361,7 @@ class GraphFusedDensity:
                 continue
 
             if self.verbose > 2:
-                print '\tBin #{0} [{1},{2},{3}]'.format(j, left, mid, right)
+                print('\tBin #{0} [{1},{2},{3}]'.format(j, left, mid, right))
             # if self.verbose > 3:
             #     print 'Trials:\n{0}'.format(pretty_str(trials))
             #     print ''
@@ -396,21 +396,21 @@ class GraphFusedDensity:
 
     def calc_plateaus(self, beta):
         '''Calculate the plateaus (degrees of freedom) a graph of beta values in linear time.'''
-        to_check = deque(xrange(len(beta)))
+        to_check = deque(range(len(beta)))
         check_map = np.zeros(beta.shape, dtype=bool)
         check_map[np.isnan(beta)] = True
         plateaus = []
 
         if self.verbose > 2:
-            print '\tCalculating plateaus...'
+            print('\tCalculating plateaus...')
 
         if self.verbose > 2:
-            print '\tIndices to check {0} {1}'.format(len(to_check), check_map.shape)
+            print('\tIndices to check {0} {1}'.format(len(to_check), check_map.shape))
 
         # Loop until every beta index has been checked
         while to_check:
             if self.verbose > 2:
-                print '\t\tPlateau #{0}'.format(len(plateaus) + 1)
+                print('\t\tPlateau #{0}'.format(len(plateaus) + 1))
 
             # Get the next unchecked point on the grid
             idx = to_check.popleft()

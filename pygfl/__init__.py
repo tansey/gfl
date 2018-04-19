@@ -20,7 +20,7 @@ import time
 import sys
 import argparse
 import csv
-from easy import solve_gfl
+from pygfl.easy import solve_gfl
 
 def main():
     parser = argparse.ArgumentParser(description='Runs the graph-fused lasso (GFL) solver on a given dataset with a given edge set. The GFL problem is defined as finding Beta such that it minimizes the equation f(Y, Beta) + lambda * g(E, Beta) where f is a smooth, convex loss function, typically 1/2 sum_i (y_i - Beta_i)^2, and g is sum of first differences on edges, sum_(s,t) |Beta_s - Beta_t| for each edge (s,t) in E.')
@@ -38,13 +38,13 @@ def main():
 
     ########### Load data from file
     if args.verbose:
-        print 'Loading data'
+        print('Loading data')
     
     y = np.loadtxt(args.data, delimiter=',')
     edges = np.loadtxt(args.edges, delimiter=',', dtype=int)
 
     if args.verbose:
-        print 'Solving the GFL for {0} variables with {1} edges'.format(len(y), len(edges))
+        print('Solving the GFL for {0} variables with {1} edges'.format(len(y), len(edges)))
     
     
     ########### Run the C solver
@@ -54,16 +54,16 @@ def main():
 
     ########### Print the timing stats
     if args.time:
-        print 'Solved the GFL in {0}s and {1} total steps of ADMM.'.format(t1 - t0, np.array(solver.steps).sum())
+        print('Solved the GFL in {0}s and {1} total steps of ADMM.'.format(t1 - t0, np.array(solver.steps).sum()))
     
     ########### Save the results to file
     if args.output:
         if args.verbose:
-            print 'Saving results to {0}'.format(args.output)
+            print('Saving results to {0}'.format(args.output))
         np.savetxt(args.output, beta, delimiter=',')
     else:
-        print 'Results:'
-        print beta
+        print('Results:')
+        print(beta)
 
 def imtv():
     parser = argparse.ArgumentParser(description='Runs the graph-fused lasso (GFL) solver on an image. Note: this is currently pretty slow for even medium-sized color images.')
@@ -80,7 +80,7 @@ def imtv():
 
     ########### Load data from file
     if args.verbose:
-        print 'Loading image'
+        print('Loading image')
 
     from scipy.misc import imsave, imread
     from utils import hypercube_edges
@@ -92,7 +92,7 @@ def imtv():
     edges = hypercube_edges(y.shape)
 
     if args.verbose:
-        print 'Solving the GFL for {0} variables with {1} edges'.format(len(y.flatten()), len(edges))
+        print('Solving the GFL for {0} variables with {1} edges'.format(len(y.flatten()), len(edges)))
     
     
     ########### Run the C solver
@@ -102,11 +102,11 @@ def imtv():
 
     ########### Print the timing stats
     if args.time:
-        print 'Solved the GFL in {0}s and {1} total steps of ADMM.'.format(t1 - t0, np.array(solver.steps).sum())
+        print('Solved the GFL in {0}s and {1} total steps of ADMM.'.format(t1 - t0, np.array(solver.steps).sum()))
     
     ########### Save the results to file
     if args.verbose:
-        print 'Saving results to {0}'.format(args.output)
+        print('Saving results to {0}'.format(args.output))
     imsave(args.output, beta.reshape(y.shape) + y_mean)
     
 

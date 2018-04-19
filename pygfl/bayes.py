@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from numpy.ctypeslib import ndpointer
 from ctypes import *
-from utils import *
+from pygfl.utils import *
 
 '''Load the bayesian GFL library'''
 gflbayes_lib = cdll.LoadLibrary('libgraphfl.so')

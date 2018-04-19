@@ -21,7 +21,7 @@ from numpy.ctypeslib import ndpointer
 from scipy.sparse import coo_matrix, csr_matrix
 from collections import defaultdict
 from ctypes import *
-from utils import *
+from pygfl.utils import *
 
 '''Load the graph trend filtering library'''
 graphfl_lib = cdll.LoadLibrary('libgraphfl.so')
@@ -103,13 +103,13 @@ class TrendFilteringSolver:
         # Solve the series of lambda values with warm starts at each point
         for i, lam in enumerate(lambda_grid):
             if verbose:
-                print '#{0} Lambda = {1}'.format(i, lam)
+                print('#{0} Lambda = {1}'.format(i, lam))
 
             # Fit to the final values
             beta = self.solve(lam)
 
             if verbose:
-                print 'Calculating degrees of freedom'
+                print('Calculating degrees of freedom')
 
             # Count the number of free parameters in the grid (dof) -- TODO: the graph trend filtering paper seems to imply we shouldn't multiply by (k+1)?
             dof_vals = self.Dk_minus_one.dot(beta) if self.k > 0 else beta
@@ -117,7 +117,7 @@ class TrendFilteringSolver:
             dof_trace[i] = max(1,len(plateaus)) #* (k+1)
 
             if verbose:
-                print 'Calculating Information Criteria'
+                print('Calculating Information Criteria')
 
             # Get the negative log-likelihood
             log_likelihood_trace[i] = -0.5 * ((self.y - beta)**2).sum()
@@ -140,10 +140,10 @@ class TrendFilteringSolver:
             beta_trace.append(np.array(beta))
             
             if verbose:
-                print 'DoF: {0} AIC: {1} AICc: {2} BIC: {3}\n'.format(dof_trace[i], aic_trace[i], aicc_trace[i], bic_trace[i])
+                print('DoF: {0} AIC: {1} AICc: {2} BIC: {3}\n'.format(dof_trace[i], aic_trace[i], aicc_trace[i], bic_trace[i]))
 
         if verbose:
-            print 'Best setting (by BIC): lambda={0} [DoF: {1}, AIC: {2}, AICc: {3} BIC: {4}]'.format(lambda_grid[best_idx], dof_trace[best_idx], aic_trace[best_idx], aicc_trace[best_idx], bic_trace[best_idx])
+            print('Best setting (by BIC): lambda={0} [DoF: {1}, AIC: {2}, AICc: {3} BIC: {4}]'.format(lambda_grid[best_idx], dof_trace[best_idx], aic_trace[best_idx], aicc_trace[best_idx], bic_trace[best_idx]))
 
         return {'aic': aic_trace,
                 'aicc': aicc_trace,
@@ -224,7 +224,7 @@ def test_solve_gtf():
     z = np.zeros((max_k,len(y)))
     tf = TrendFilteringSolver()
     tf.set_data(y, D, w)
-    for k in xrange(max_k):
+    for k in range(max_k):
         #z[k] = tf.solve(k, lam)
         z[k] = tf.solution_path(k, 0.2, 2000, 100, verbose=True)['best']
     
@@ -237,7 +237,7 @@ def test_solve_gtf():
     colors = ['orange', 'skyblue', '#009E73', 'purple']
     fig, ax = plt.subplots(max_k)
     x = np.linspace(0,1,len(y))
-    for k in xrange(max_k):
+    for k in range(max_k):
         ax[k].scatter(x, y, alpha=0.5)
         ax[k].plot(x, z[k], lw=2, color=colors[k], label='k={0}'.format(k))
         ax[k].set_xlim([0,1])
@@ -261,7 +261,7 @@ def test_solve_gtf_logit():
 
     D = coo_matrix(get_1d_penalty_matrix(len(trials)))
     z = np.zeros((max_k,len(trials)))
-    for k in xrange(max_k):
+    for k in range(max_k):
         tf = LogitTrendFilteringSolver()
         tf.set_data(trials, successes, D)
         z[k] = tf.solve(k, lam)
@@ -274,7 +274,7 @@ def test_solve_gtf_logit():
     ax[0].set_ylim([0,30])
     ax[0].set_xlim([0,1])
     ax[0].set_ylabel('Trials and successes')
-    for k in xrange(max_k):
+    for k in range(max_k):
         ax[k+1].scatter(x, probs, alpha=0.5)
         ax[k+1].plot(x, z[k], lw=2, color=colors[k], label='k={0}'.format(k))
         ax[k+1].set_ylim([0,1])
@@ -297,7 +297,7 @@ def test_solve_gtf_poisson():
 
     D = coo_matrix(get_1d_penalty_matrix(len(obs)))
     z = np.zeros((max_k,len(obs)))
-    for k in xrange(max_k):
+    for k in range(max_k):
         tf = PoissonTrendFilteringSolver()
         tf.set_data(obs, D)
         z[k] = tf.solve(k, lam)
@@ -308,7 +308,7 @@ def test_solve_gtf_poisson():
     ax[0].bar(x, obs, width=1./len(x), color='darkblue', alpha=0.3)
     ax[0].set_xlim([0,1])
     ax[0].set_ylabel('Observations')
-    for k in xrange(max_k):
+    for k in range(max_k):
         ax[k+1].scatter(x, probs, alpha=0.5)
         ax[k+1].plot(x, z[k], lw=2, color=colors[k], label='k={0}'.format(k))
         ax[k+1].set_xlim([0,1])

@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.ctypeslib import ndpointer
 from ctypes import *
-from utils import *
-from solver import TrailSolver
+from pygfl.utils import *
+from pygfl.solver import TrailSolver
 
 # Load the graph fused lasso library
 logistic_graphfl_lib = cdll.LoadLibrary('libgraphfl.so')
