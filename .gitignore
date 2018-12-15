@@ -72,3 +72,9 @@ img/buckets/
 img/temp/
 python/temp.py
 gfl.pdf
+
+#added by tanghao 20181215
+env
+*.swp 
+*.swo 
+__pycache__
