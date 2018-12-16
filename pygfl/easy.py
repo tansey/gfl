@@ -22,6 +22,8 @@ from pygfl.logistic_solver import LogisticTrailSolver
 from pygfl.binomial_solver import BinomialTrailSolver
 from pygfl.utils import *
 
+import numpy as np
+
 def solve_gfl(data, edges=None, weights=None,
               minlam=0.2, maxlam=1000.0, numlam=30,
               alpha=0.2, inflate=2., converge=1e-6,
@@ -30,6 +32,10 @@ def solve_gfl(data, edges=None, weights=None,
               loss='normal'):
     '''A very easy-to-use version of GFL solver that just requires the data and
     the edges.'''
+
+    #Keep initial edges added by tang 20181216
+    init_edges = edges
+
     if verbose:
         print('Decomposing graph into trails')
 
@@ -93,6 +99,13 @@ def solve_gfl(data, edges=None, weights=None,
         beta = solver.solution_path(minlam, maxlam, numlam, verbose=max(0, verbose-1))
         if not full_path:
             beta = beta['best']
-    
+
+    ########### Fix disconnected nodes added by tang 20181216
+    mask = np.ones_like(beta)
+    mask[init_edges[:,0]] = 0
+    mask[init_edges[:,1]] = 0
+    print(mask)
+    beta[mask>0] = data[mask>0]
+
     return beta
 
