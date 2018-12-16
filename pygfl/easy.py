@@ -33,6 +33,10 @@ def solve_gfl(data, edges=None, weights=None,
     '''A very easy-to-use version of GFL solver that just requires the data and
     the edges.'''
 
+    #Fix no edge cases added by tang 20181216
+    if edges.shape[0] < 1:
+        return data
+
     #Keep initial edges added by tang 20181216
     init_edges = edges
 
@@ -104,7 +108,6 @@ def solve_gfl(data, edges=None, weights=None,
     mask = np.ones_like(beta)
     mask[init_edges[:,0]] = 0
     mask[init_edges[:,1]] = 0
-    print(mask)
     beta[mask>0] = data[mask>0]
 
     return beta
