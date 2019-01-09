@@ -100,7 +100,7 @@ def random_graph_edges(num_nodes, num_edges):
     g = nx.Graph()
     edges = [(v1,v2) for v1, v2 in np.random.choice(np.arange(num_nodes), size=(num_edges, 2)) if v1 != v2]
     g.add_edges_from(edges)
-    
+
     # If the random graph is not fully connected, connect all the subgraphs
     subgraphs = [nx.subgraph(g, x) for x in nx.connected_components(g)]
     while len(subgraphs) > 1:
@@ -234,7 +234,7 @@ def select_min_degree_trail(subg, max_nodes, verbose):
     while len(nodes) < 2:
         min_degree += 1
         nodes.extend([n for n,d in nx.degree(subg).items() if d == min_degree])
-    
+
     if args.verbose > 1:
         print('\t\tMin degree: {0}. # min nodes: {1}'.format(min_degree, len(nodes)))
 
@@ -363,7 +363,7 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
                     print('\t\tExactly 2 odds')
                 else:
                     print('\t\t{0} odds'.format(len(odds)))
-            
+
             # If there are no odd-degree edges, we can find an euler circuit
             if len(odds) == 0:
                 trails = [list(nx.eulerian_circuit(subg))]
@@ -392,7 +392,7 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
 
             # Add it to the list of chains
             chains.extend(trails)
-            
+
             # If the subgraph is empty, remove it from the list
             if subg.number_of_edges() == 0:
                 del subgraphs[i]
@@ -404,7 +404,7 @@ def decompose_graph(g, heuristic='tour', max_odds=20, verbose=0):
                     for x in comps:
                         compg = nx.subgraph(subg, x)
                         if compg.number_of_edges() > 0:
-                            subgraphs.append(compg)
+                            subgraphs.append(nx.Graph(compg))
                     del subgraphs[i]
 
         # Update the count of connected subgraphs
@@ -420,7 +420,7 @@ def main():
     parser.add_argument('--saveg', help='Save the full graph to the specified file in CSV format.')
     parser.add_argument('--savet', help='Save the resulting set of trails to the specified file in CSV format.')
     parser.add_argument('--verbose', type=int, default=1, help='Print detailed progress information to the console. 0=none, 1=high-level only, 2=all details.')
-    
+
     # Settings to load the graph from file
     parser.add_argument('--infile', help='Load the graph from a CSV file of edges.')
 
@@ -474,7 +474,7 @@ def main():
         print('# of nodes in graph: {0}'.format(g.number_of_nodes()))
         print('# of edges in graph: {0}'.format(total_edges))
 
-    
+
     if args.saveg:
         if args.verbose:
             print('Saving graph to {0}'.format(args.saveg))
@@ -492,7 +492,7 @@ def main():
 
     # Run the graph decomposition algorithm and get the resulting trails
     chains = decompose_graph(g, heuristic=args.heuristic, max_odds=args.max_odds, verbose=args.verbose)
-        
+
     # if args.plot:
     #     if args.verbose > 1:
     #         '\tPlotting trails'
