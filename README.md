@@ -1,6 +1,9 @@
 Paper name: A Fast, Flexible Algorithm for the Graph-Fused Lasso
+
 Original repo: https://github.com/tansey/gfl
+
 Hao.Tang's improved version: https://github.com/silent567/gfl
+
 
 Overview
 ===============
