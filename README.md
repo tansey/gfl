@@ -1,5 +1,9 @@
-A Fast, Flexible Algorithm for the Graph-Fused Lasso
-----------------------------------------------------
+Paper name: A Fast, Flexible Algorithm for the Graph-Fused Lasso
+Original repo: https://github.com/tansey/gfl
+Hao.Tang's improved version: https://github.com/silent567/gfl
+
+Overview
+===============
 
 <p align="center">
   <img src="https://github.com/tansey/gfl/blob/master/img/example1.png?raw=true" alt="Example GFL Solution"/>
@@ -14,6 +18,22 @@ The goal in the graph-fused lasso (GFL) is to find a solution to the following c
 where __l__ is a smooth, convex loss function. The problem assumes you are given a graph structure of edges and nodes, where each node corresponds to a variable and edges between nodes correspond to constraints on the first differences between the variables. The objective function then seeks to find a solution to the above problem that minimizes the loss function over the vertices plus the sum of the first differences defined by the set of edges __E__.
 
 The solution implemented here is based on the graph-theoretic trail decomposition and ADMM algorithm implemented in [1]. The code relies on a slightly modified version of a linear-time dynamic programming solution to the 1-d (i.e. chain) GFL [2].
+
+Quick Setup on Ubuntu
+=======================
+```
+git clone https://gitlab.com/hao.tang/gfl.git 
+cd gfl
+pip install numpy networkx scipy
+sudo apt-get install libgsl-dev cmake
+cd cpp 
+make all
+cd ..
+python setup.py build
+python setup.py install
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<current_path, i.e. echo $PWD>/cpp/lib 
+```
+
 
 Python Requirements
 ===================
