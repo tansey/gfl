@@ -34,7 +34,7 @@ def solve_gfl(data, edges=None, weights=None,
     the edges.'''
 
     #Fix no edge cases
-    if edges.shape[0] < 1:
+    if edges is not None and edges.shape[0] < 1:
         return data
 
     #Keep initial edges
