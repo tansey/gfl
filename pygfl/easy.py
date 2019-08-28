@@ -34,11 +34,8 @@ def solve_gfl(data, edges=None, weights=None,
     the edges.'''
 
     #Fix no edge cases
-    if edges is not None and edges.shape[0] < 1:
+    if edges is not None and edges.shape[0] == 0:
         return data
-
-    #Keep initial edges
-    init_edges = edges
 
     if verbose:
         print('Decomposing graph into trails')
@@ -71,6 +68,8 @@ def solve_gfl(data, edges=None, weights=None,
             else:
                 nonmissing_flat_data = flat_data[flat_data != missing_val]
 
+    # Keep initial edges
+    init_edges = np.array(edges)
 
     ########### Setup the graph
     g = Graph()
