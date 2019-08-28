@@ -25,7 +25,7 @@ from pygfl.utils import *
 def solve_gfl(data, edges=None, weights=None,
               minlam=0.2, maxlam=1000.0, numlam=30,
               alpha=0.2, inflate=2., converge=1e-6,
-              maxsteps=1000000, lam=None, verbose=0,
+              maxsteps=100000, lam=None, verbose=0,
               missing_val=None, full_path=False,
               loss='normal'):
     '''A very easy-to-use version of GFL solver that just requires the data and
@@ -39,6 +39,9 @@ def solve_gfl(data, edges=None, weights=None,
     else:
         flat_data = data.flatten()
         nonmissing_flat_data = flat_data
+
+    if weights is not None:
+        weights = weights.flatten()
 
     if edges is None:
         if loss == 'binomial':

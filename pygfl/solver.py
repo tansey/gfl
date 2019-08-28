@@ -215,3 +215,10 @@ class TrailSolver:
                 'best_idx': best_idx,
                 'best': beta_trace[best_idx],
                 'plateaus': best_plateaus}
+
+
+
+
+
+
+
