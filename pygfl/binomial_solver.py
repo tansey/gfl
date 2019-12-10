@@ -3,9 +3,13 @@ from numpy.ctypeslib import ndpointer
 from ctypes import *
 from pygfl.utils import *
 from pygfl.solver import TrailSolver
+import os
+from glob import glob
+
 
 # Load the graph fused lasso library
-logistic_graphfl_lib = cdll.LoadLibrary('libgraphfl.so')
+_libgraphfl_file = get_libgraphfl()
+logistic_graphfl_lib = cdll.LoadLibrary(_libgraphfl_file)
 logistic_graphfl = logistic_graphfl_lib.graph_fused_lasso_logit_warm
 logistic_graphfl.restype = c_int
 logistic_graphfl.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
