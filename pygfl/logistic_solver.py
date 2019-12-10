@@ -5,8 +5,14 @@ from pygfl.utils import *
 from pygfl.solver import TrailSolver
 
 # Load the graph fused lasso library
-_libgraphfl = get_libgraphfl()
-logistic_graphfl_lib = cdll.LoadLibrary(_libgraphfl)
+try:
+    logistic_graphfl_lib = cdll.LoadLibrary("libgraphfl.so")
+except OSError:
+    # If the installation isn't available on LD_LIBRARY_PATH, it's probably
+    # been built with setuptools and is in the project root.
+    _libgraphfl = get_libgraphfl()
+    logistic_graphfl_lib = cdll.LoadLibrary(_libgraphfl)
+
 logistic_graphfl = logistic_graphfl_lib.graph_fused_lasso_logit_warm
 logistic_graphfl.restype = c_int
 logistic_graphfl.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),

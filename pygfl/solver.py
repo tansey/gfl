@@ -21,8 +21,12 @@ from ctypes import *
 from pygfl.utils import *
 
 '''Load the graph fused lasso library'''
-_libgraphfl_file = get_libgraphfl()
-graphfl_lib = cdll.LoadLibrary(_libgraphfl_file)
+try:
+    graphfl_lib = cdll.LoadLibrary("libgraphfl.so")
+except OSError:
+    _libgraphfl_file = get_libgraphfl()
+    graphfl_lib = cdll.LoadLibrary(_libgraphfl_file)
+
 graphfl = graphfl_lib.graph_fused_lasso_warm
 graphfl.restype = c_int
 graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'),
