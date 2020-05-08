@@ -17,6 +17,7 @@
 '''
 import numpy as np
 import os
+from glob import glob
 import argparse
 import csv
 import datetime
@@ -25,6 +26,18 @@ from scipy.sparse import issparse, isspmatrix_coo, coo_matrix
 from scipy.sparse.linalg import lsqr
 from networkx import Graph
 from pygfl.trails import decompose_graph
+
+
+def get_libgraphfl():
+    # When building as an Extension, the system information can make it into
+    # the shared object, so we need to glob it. We also need to make sure the
+    # module is looking in the correct directory for the shared object.
+    _dirname = os.path.dirname(__file__)
+    _libgraphfl_glob = glob("{}/../libgraphfl*.so".format(_dirname))
+    if len(_libgraphfl_glob) < 1:
+        raise ImportError("Could not load libgraphl.")
+    _libgraphfl_file = _libgraphfl_glob[0]
+    return _libgraphfl_file
 
 def create_plateaus(data, edges, plateau_size, plateau_vals, plateaus=None):
     '''Creates plateaus of constant value in the data.'''

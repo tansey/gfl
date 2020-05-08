@@ -65,9 +65,9 @@ prob = cvx.Problem(obj, constraints)
 prob.solve(solver=cvx.CVXOPT)
 
 
-print 'Status: {0}'.format(prob.status)
-print 'Results: {0}'.format(prob.value)
-print 'P: {0}'.format(P.value)
-print 'Lambda1: {0}'.format(lam1.value)
-print 'Lambda2: {0}'.format(lam2.value)
+print('Status: {0}'.format(prob.status))
+print('Results: {0}'.format(prob.value))
+print('P: {0}'.format(P.value))
+print('Lambda1: {0}'.format(lam1.value))
+print('Lambda2: {0}'.format(lam2.value))
 
