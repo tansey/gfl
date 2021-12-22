@@ -9,6 +9,12 @@ all:
 	mkdir -p obj
 	cd obj; ${CC} ${CFLAGS}  -c -fPIC ../src/*.c -I${IDIR}
 	${CC} -shared -o lib/libgraphfl.so ${OBJ} -lgsl -lgslcblas
+
+conda3:
+	mkdir -p lib
+	mkdir -p obj
+	cd obj; ${CC} ${CFLAGS}  -c -fPIC ../src/*.c -I/opt/anaconda3/envs/shadow/include/ -I${IDIR}
+	${CC} -shared -o lib/libgraphfl.so ${OBJ} -L/opt/anaconda3/envs/shadow/lib/ -lgsl -lgslcblas
 	
 docs:
 	doxygen Doxyfile

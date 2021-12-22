@@ -35,6 +35,14 @@ python setup.py install
 
 Note that the installation has not been tested on anything other than Mac OS X and Ubuntu. The underlying solver is implemented in pure C and should be cross-platform compatible.
 
+If you have trouble installing with pip due to linker errors with GSL and conda, you can solve this by adding your GSL headers to the include and library paths. E.g. in conda3:
+
+```
+conda install -c conda-forge gsl
+export C_INCLUDE_PATH=/opt/anaconda3/envs/{environment name}/include/
+export LIBRARY_PATH=/opt/anaconda3/envs/{environment name}/lib/
+```
+
 Running
 =======
 The simplest way to run the script is via the command-line `graphfl` script. You just give it a CSV of your data that you wish to smooth and a CSV of your edges, one edge per row:

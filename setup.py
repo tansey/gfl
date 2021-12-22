@@ -10,6 +10,7 @@ from setuptools import setup, find_packages, Extension
 # To use a consistent encoding
 from codecs import open
 from os import path
+import os
 
 here = path.abspath(path.dirname(__file__))
 
@@ -18,6 +19,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # C library for the GFL solver
+os.environ["CC"] = "gcc"
+os.environ["CXX"] = "g++"
 module1 = Extension('libgraphfl',
                     include_dirs = ['cpp/include/'],
                     libraries=['gsl', 'gslcblas'],
