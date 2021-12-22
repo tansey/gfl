@@ -24,11 +24,11 @@ if __name__ == '__main__':
     gfd = GraphFusedDensity(polya_levels=3)
     gfd.set_data(data, edges, ntrails, trails, breakpoints)
 
-    print 'Data:'
+    print('Data:')
     for row in data:
-        print '[{0}] total={1}'.format(','.join([str(x) for x in row]), row.sum())
+        print('[{0}] total={1}'.format(','.join([str(x) for x in row]), row.sum()))
     for j, (left, mid, right, trials, successes) in enumerate(gfd.bins):
-        print '\tBin #{0} [{1},{2},{3}] N={4} K={5}'.format(j, left, mid, right, trials, successes)
+        print('\tBin #{0} [{1},{2},{3}] N={4} K={5}'.format(j, left, mid, right, trials, successes))
 
     
     results = gfd.solution_path()
