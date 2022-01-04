@@ -162,6 +162,7 @@ class LogitTrendFilteringSolver(TrendFilteringSolver):
         self.converge = converge
 
     def set_data(self, D, k, trials, successes):
+        self.y = successes/np.maximum(1,trials)
         self.trials = trials
         self.successes = successes
         self.initialize(D, k)
@@ -182,6 +183,7 @@ class PoissonTrendFilteringSolver(TrendFilteringSolver):
         self.converge = converge
 
     def set_data(self, D, k, obs):
+        self.y = obs
         self.obs = obs
         self.initialize(D, k)
 
@@ -223,10 +225,10 @@ def test_solve_gtf():
 
     z = np.zeros((max_k,len(y)))
     tf = TrendFilteringSolver()
-    tf.set_data(y, D, w)
     for k in range(max_k):
+        tf.set_data(D, k, y, weights=w)
         #z[k] = tf.solve(k, lam)
-        z[k] = tf.solution_path(k, 0.2, 2000, 100, verbose=True)['best']
+        z[k] = tf.solution_path(0.2, 2000, 100, verbose=True)['best']
     
     y *= stdev_offset
     y += mean_offset
@@ -249,7 +251,7 @@ def test_solve_gtf():
 
 def test_solve_gtf_logit():
     max_k = 5
-    trials = np.random.randint(5, 30, size=100).astype('int32')
+    trials = np.random.randint(1, 5, size=100).astype('int32')
     probs = np.zeros(100)
     probs[:25] = 0.25
     probs[25:50] = 0.75
@@ -257,17 +259,18 @@ def test_solve_gtf_logit():
     probs[75:] = 0.1
     successes = np.array([np.random.binomial(t, p) for t,p in zip(trials, probs)]).astype('int32')
 
-    lam = 3.
+    lam = 10.
 
     D = coo_matrix(get_1d_penalty_matrix(len(trials)))
     z = np.zeros((max_k,len(trials)))
     for k in range(max_k):
         tf = LogitTrendFilteringSolver()
-        tf.set_data(trials, successes, D)
-        z[k] = tf.solve(k, lam)
+        tf.set_data(D, k, trials, successes)
+        z[k] = tf.solve(lam)
+        # z[k] = tf.solution_path(0.2, 2000, 100, verbose=True)['best']
 
     colors = ['orange', 'skyblue', '#009E73', 'purple', 'black']
-    fig, ax = plt.subplots(max_k+1)
+    fig, ax = plt.subplots(max_k+1, figsize=(5*(1+max_k), 10))
     x = np.linspace(0,1,len(trials))
     ax[0].bar(x, successes, width=1./len(x), color='darkblue', alpha=0.3)
     ax[0].bar(x, trials-successes, width=1./len(x), color='skyblue', alpha=0.3, bottom=successes)
@@ -299,8 +302,8 @@ def test_solve_gtf_poisson():
     z = np.zeros((max_k,len(obs)))
     for k in range(max_k):
         tf = PoissonTrendFilteringSolver()
-        tf.set_data(obs, D)
-        z[k] = tf.solve(k, lam)
+        tf.set_data(D, k, obs)
+        z[k] = tf.solve(lam)
 
     colors = ['orange', 'skyblue', '#009E73', 'purple', 'black']
     fig, ax = plt.subplots(max_k+1)
@@ -312,10 +315,13 @@ def test_solve_gtf_poisson():
         ax[k+1].scatter(x, probs, alpha=0.5)
         ax[k+1].plot(x, z[k], lw=2, color=colors[k], label='k={0}'.format(k))
         ax[k+1].set_xlim([0,1])
-        ax[k+1].set_ylabel('Beta (k={0})'.format(k))
+        ax[k+1].set_ylabel('K={0}'.format(k))
     
     plt.show()
     plt.clf()
 
 if __name__ == '__main__':
     test_solve_gtf()
+    # test_solve_gtf_logit()
+    # test_solve_gtf_poisson()
+
