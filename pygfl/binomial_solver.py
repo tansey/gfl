@@ -18,7 +18,7 @@ except OSError:
 
 logistic_graphfl = logistic_graphfl_lib.graph_fused_lasso_logit_warm
 logistic_graphfl.restype = c_int
-logistic_graphfl.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+logistic_graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
                                 c_double, c_double, c_double,
                                 c_int, c_double,
@@ -49,8 +49,8 @@ class BinomialTrailSolver(TrailSolver):
         if hasattr(lam, '__len__'):
             raise NotImplementedError('Only uniform edge weighting implemented for logistic loss.')
 
-        trials = self.y[0].astype('int32')
-        successes = self.y[1].astype('int32')
+        trials = self.y[0].astype('double')
+        successes = self.y[1].astype('double')
 
         # Run the graph-fused lasso algorithm
         s = logistic_graphfl(self.nnodes,
@@ -64,8 +64,8 @@ class BinomialTrailSolver(TrailSolver):
         return self.beta
 
     def log_likelihood(self, beta):
-        trials = self.y[0].astype('int32')
-        successes = self.y[1].astype('int32')
+        trials = self.y[0].astype('double')
+        successes = self.y[1].astype('double')
         return (successes * np.log(1. / (1. + np.exp(-beta))) + \
                 (trials - successes) * np.log(1. / (1. + np.exp(beta)))).sum()
 
