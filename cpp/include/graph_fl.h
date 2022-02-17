@@ -39,7 +39,7 @@ int graph_fused_lasso_weight (int n, double *y, double *w,
                         int maxsteps, double converge,
                         double *beta);
 
-int graph_fused_lasso_logit (int n, int *trials, int *successes,
+int graph_fused_lasso_logit (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -57,7 +57,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
                         int maxsteps, double converge,
                         double *beta, double *z, double *u);
 
-int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
+int graph_fused_lasso_logit_warm (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -78,7 +78,7 @@ int graph_fused_lasso_lams_weight (int n, double *y, double *w,
                         int maxsteps, double converge,
                         double *beta);
 
-int graph_fused_lasso_lams_logit (int n, int *trials, int *successes,
+int graph_fused_lasso_lams_logit (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double *lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -96,7 +96,7 @@ int graph_fused_lasso_lams_weight_warm (int n, double *y, double *w,
                         int maxsteps, double converge,
                         double *beta, double *z, double *u);
 
-int graph_fused_lasso_logit_lams_warm (int n, int *trials, int *successes,
+int graph_fused_lasso_logit_lams_warm (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double *lam, double alpha, double inflate,
                         int maxsteps, double converge,

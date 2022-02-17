@@ -15,7 +15,7 @@ except OSError:
 
 logistic_graphfl = logistic_graphfl_lib.graph_fused_lasso_logit_warm
 logistic_graphfl.restype = c_int
-logistic_graphfl.argtypes = [c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
+logistic_graphfl.argtypes = [c_int, ndpointer(c_double, flags='C_CONTIGUOUS'), ndpointer(c_double, flags='C_CONTIGUOUS'),
                                 c_int, ndpointer(c_int, flags='C_CONTIGUOUS'), ndpointer(c_int, flags='C_CONTIGUOUS'),
                                 c_double, c_double, c_double,
                                 c_int, c_double,
@@ -34,7 +34,7 @@ class LogisticTrailSolver(TrailSolver):
             raise NotImplementedError('Only uniform edge weighting implemented for logistic loss.')
 
         # Run the graph-fused lasso algorithm
-        s = logistic_graphfl(self.nnodes, np.ones(self.nnodes, dtype='int32'), self.y.astype('int32'),
+        s = logistic_graphfl(self.nnodes, np.ones(self.nnodes, dtype='double'), self.y.astype('double'),
                      self.ntrails, self.trails, self.breakpoints,
                      lam, self.alpha, self.inflate,
                      self.maxsteps, self.converge,

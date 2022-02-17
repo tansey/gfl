@@ -205,7 +205,7 @@ int graph_fused_lasso_weight_warm (int n, double *y, double *w,
 
 
 
-int graph_fused_lasso_logit (int n, int *trials, int *successes,
+int graph_fused_lasso_logit (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -243,7 +243,7 @@ int graph_fused_lasso_logit (int n, int *trials, int *successes,
     return i;
 }
 
-int graph_fused_lasso_logit_warm (int n, int *trials, int *successes,
+int graph_fused_lasso_logit_warm (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -735,7 +735,7 @@ int graph_fused_lasso_lams_weight_warm (int n, double *y, double *w,
     return step;
 }
 
-int graph_fused_lasso_logit_lams (int n, int *trials, int *successes,
+int graph_fused_lasso_logit_lams (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double *lam, double alpha, double inflate,
                         int maxsteps, double converge,
@@ -773,7 +773,7 @@ int graph_fused_lasso_logit_lams (int n, int *trials, int *successes,
     return i;
 }
 
-int graph_fused_lasso_logit_lams_warm (int n, int *trials, int *successes,
+int graph_fused_lasso_logit_lams_warm (int n, double *trials, double *successes,
                         int ntrails, int *trails, int *breakpoints,
                         double *lam, double alpha, double inflate,
                         int maxsteps, double converge,
