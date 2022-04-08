@@ -24,11 +24,13 @@ Installing
 ==========
 The package can be installed via Pip:
 
-`pip install pygfl`
+```sh
+pip install pygfl
+```
 
 or directly from source:
 
-```
+```sh
 python setup.py build
 python setup.py install
 ```
@@ -37,7 +39,7 @@ Note that the installation has not been tested on anything other than Mac OS X a
 
 If you have trouble installing with pip due to linker errors with GSL and conda, you can solve this by adding your GSL headers to the include and library paths. E.g. in conda3:
 
-```
+```sh
 conda install -c conda-forge gsl
 export C_INCLUDE_PATH=/opt/anaconda3/envs/{environment name}/include/
 export LIBRARY_PATH=/opt/anaconda3/envs/{environment name}/lib/
@@ -47,7 +49,7 @@ Running
 =======
 The simplest way to run the script is via the command-line `graphfl` script. You just give it a CSV of your data that you wish to smooth and a CSV of your edges, one edge per row:
 
-```
+```sh
 graphfl example/data.csv example/edges.csv --o example/smoothed.csv
 ```
 
@@ -57,7 +59,7 @@ Calling within Python
 =====================
 To call the solver within a Python program, the simplest way is to use the `easy.solve_gfl` method:
 
-```
+```py
 import numpy as np
 from pygfl.easy import solve_gfl
 
